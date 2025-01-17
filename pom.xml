@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.openhitls</groupId>
+    <artifactId>hitls4j</artifactId>
+    <version>1.0</version>
+
+    <dependencies>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies> 
+    
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <openhitls.root>/path/to/openhitls</openhitls.root>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <configuration>
+                    <argLine>-Djava.library.path=${openhitls.root}/lib:${project.build.directory}/native</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>compile-jni</id>
+                        <phase>compile</phase>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/native"/>
+                                <!-- Compile JNI source files -->
+                                <exec executable="gcc" failonerror="true">
+                                    <arg value="-c"/>
+                                    <arg value="-fPIC"/>
+                                    <arg value="-Wall"/>
+                                    <arg value="-I${env.JAVA_HOME}/include"/>
+                                    <arg value="-I${env.JAVA_HOME}/include/linux"/>
+                                    <arg value="-I${basedir}/src/main/native"/>
+                                    <arg value="-I${basedir}/src/main/native/include"/>
+                                    <arg value="-I${openhitls.root}/include"/>
+                                    <arg value="-I${openhitls.root}/crypto/include"/>
+                                    <arg value="-I${openhitls.root}/build/include"/>
+                                    <arg value="${basedir}/src/main/native/sm2_jni.c"/>
+                                    <arg value="-o"/>
+                                    <arg value="${project.build.directory}/native/sm2_jni.o"/>
+                                </exec>
+                                <exec executable="gcc" failonerror="true">
+                                    <arg value="-c"/>
+                                    <arg value="-fPIC"/>
+                                    <arg value="-Wall"/>
+                                    <arg value="-I${env.JAVA_HOME}/include"/>
+                                    <arg value="-I${env.JAVA_HOME}/include/linux"/>
+                                    <arg value="-I${basedir}/src/main/native"/>
+                                    <arg value="-I${basedir}/src/main/native/include"/>
+                                    <arg value="-I${openhitls.root}/include"/>
+                                    <arg value="-I${openhitls.root}/crypto/include"/>
+                                    <arg value="-I${openhitls.root}/build/include"/>
+                                    <arg value="${basedir}/src/main/native/sm3_jni.c"/>
+                                    <arg value="-o"/>
+                                    <arg value="${project.build.directory}/native/sm3_jni.o"/>
+                                </exec>
+                                <exec executable="gcc" failonerror="true">
+                                    <arg value="-c"/>
+                                    <arg value="-fPIC"/>
+                                    <arg value="-Wall"/>
+                                    <arg value="-I${env.JAVA_HOME}/include"/>
+                                    <arg value="-I${env.JAVA_HOME}/include/linux"/>
+                                    <arg value="-I${basedir}/src/main/native"/>
+                                    <arg value="-I${basedir}/src/main/native/include"/>
+                                    <arg value="-I${openhitls.root}/include"/>
+                                    <arg value="-I${openhitls.root}/crypto/include"/>
+                                    <arg value="-I${openhitls.root}/build/include"/>
+                                    <arg value="${basedir}/src/main/native/sm4_jni.c"/>
+                                    <arg value="-o"/>
+                                    <arg value="${project.build.directory}/native/sm4_jni.o"/>
+                                </exec>
+                                <exec executable="gcc" failonerror="true">
+                                    <arg value="-c"/>
+                                    <arg value="-fPIC"/>
+                                    <arg value="-Wall"/>
+                                    <arg value="-I${env.JAVA_HOME}/include"/>
+                                    <arg value="-I${env.JAVA_HOME}/include/linux"/>
+                                    <arg value="-I${basedir}/src/main/native"/>
+                                    <arg value="-I${basedir}/src/main/native/include"/>
+                                    <arg value="-I${openhitls.root}/include"/>
+                                    <arg value="-I${openhitls.root}/crypto/include"/>
+                                    <arg value="-I${openhitls.root}/build/include"/>
+                                    <arg value="${basedir}/src/main/native/hmac_jni.c"/>
+                                    <arg value="-o"/>
+                                    <arg value="${project.build.directory}/native/hmac_jni.o"/>
+                                </exec>
+                                <!-- Link directly to shared library -->
+                                <exec executable="gcc" failonerror="true">
+                                    <arg value="-shared"/>
+                                    <arg value="-o"/>
+                                    <arg value="${project.build.directory}/native/libhitls_crypto_jni.so"/>
+                                    <arg value="${project.build.directory}/native/sm2_jni.o"/>
+                                    <arg value="${project.build.directory}/native/sm3_jni.o"/>
+                                    <arg value="${project.build.directory}/native/sm4_jni.o"/>
+                                    <arg value="${project.build.directory}/native/hmac_jni.o"/>
+                                    <arg value="-L${openhitls.root}/build"/>
+                                    <arg value="-Wl,--whole-archive"/>
+                                    <arg value="${openhitls.root}/build/libboundscheck.a"/>
+                                    <arg value="${openhitls.root}/build/libhitls_crypto.a"/>
+                                    <arg value="${openhitls.root}/build/libhitls_bsl.a"/>
+                                    <arg value="-Wl,--no-whole-archive"/>
+                                    <arg value="-Wl,-z,noexecstack"/>
+                                    <arg value="-Wl,--no-undefined"/>
+                                    <arg value="-Wl,--start-group"/>
+                                    <arg value="-ldl"/>
+                                    <arg value="-lc"/>
+                                    <arg value="-lpthread"/>
+                                    <arg value="-lrt"/>
+                                    <arg value="-lm"/>
+                                    <arg value="-Wl,--end-group"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Package native libraries into JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- Copy native libraries to JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-native-libs</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/classes/native/libs</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/native</directory>
+                                    <includes>
+                                        <include>libhitls_crypto_jni.so</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
