@@ -18,7 +18,7 @@ static void *StdMalloc(uint32_t len) {
 static void PrintLastError(void) {
     const char *file = NULL;
     uint32_t line = 0;
-    BSL_ERR_GetLastErrorFileLine(&file, &line);
+    BSL_ERR_GetLastError();  
 }
 
 static void throwException(JNIEnv *env, const char *message, int32_t errorCode) {
@@ -48,9 +48,11 @@ static void initBSL() {
 static void initRand(JNIEnv *env) {
     static uint32_t onceControl = 0;
     BSL_SAL_ThreadRunOnce(&onceControl, randInit);
-    int ret = CRYPT_EAL_RandGetStatus();
+    
+    uint8_t testBuf[32];
+    int ret = CRYPT_EAL_Randbytes(testBuf, sizeof(testBuf));
     if (ret != CRYPT_SUCCESS) {
-        throwException(env, "Failed to initialize random number generator", ret);
+        throwException(env, "Failed to generate random number", ret);
     }
 }
 

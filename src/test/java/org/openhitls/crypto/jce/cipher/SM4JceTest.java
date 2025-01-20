@@ -495,12 +495,12 @@ public class SM4JceTest extends org.openhitls.crypto.BaseTest {
                         IvParameterSpec iv = new IvParameterSpec(TEST_IV);
 
                         // Encrypt
-                        Cipher encryptCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "HITLS4J");
+                        Cipher encryptCipher = Cipher.getInstance("SM4/CBC/PKCS5PADDING", HiTls4jProvider.PROVIDER_NAME);
                         encryptCipher.init(Cipher.ENCRYPT_MODE, key, iv);
                         byte[] encrypted = encryptCipher.doFinal(TEST_DATA);
 
                         // Decrypt
-                        Cipher decryptCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "HITLS4J");
+                        Cipher decryptCipher = Cipher.getInstance("SM4/CBC/PKCS5PADDING", HiTls4jProvider.PROVIDER_NAME);
                         decryptCipher.init(Cipher.DECRYPT_MODE, key, iv);
                         byte[] decrypted = decryptCipher.doFinal(encrypted);
 
@@ -509,7 +509,7 @@ public class SM4JceTest extends org.openhitls.crypto.BaseTest {
                         }
 
                         // Also test incremental updates
-                        encryptCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "HITLS4J");
+                        encryptCipher = Cipher.getInstance("SM4/CBC/PKCS5PADDING", HiTls4jProvider.PROVIDER_NAME);
                         encryptCipher.init(Cipher.ENCRYPT_MODE, key, iv);
                         byte[] part1 = encryptCipher.update(Arrays.copyOfRange(TEST_DATA, 0, 16));
                         byte[] part2 = encryptCipher.update(Arrays.copyOfRange(TEST_DATA, 16, TEST_DATA.length));
@@ -522,7 +522,7 @@ public class SM4JceTest extends org.openhitls.crypto.BaseTest {
                         System.arraycopy(part3, 0, incrementalEncrypted, part1.length + part2.length, part3.length);
 
                         // Decrypt incremental
-                        decryptCipher = Cipher.getInstance("SM4/CBC/PKCS5Padding", "HITLS4J");
+                        decryptCipher = Cipher.getInstance("SM4/CBC/PKCS5PADDING", HiTls4jProvider.PROVIDER_NAME);
                         decryptCipher.init(Cipher.DECRYPT_MODE, key, iv);
                         byte[] incrementalDecrypted = decryptCipher.doFinal(incrementalEncrypted);
 
