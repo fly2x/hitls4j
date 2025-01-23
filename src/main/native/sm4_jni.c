@@ -4,6 +4,7 @@
 #include <include/crypt_errno.h>
 #include <include/crypt_algid.h>
 #include <include/crypt_eal_cipher.h>
+#include <include/crypt_eal_provider.h>
 #include <include/bsl_sal.h>
 #include <include/bsl_err.h>
 #include "org_openhitls_crypto_core_symmetric_SM4.h"
@@ -12,17 +13,12 @@ static void *StdMalloc(uint32_t len) {
     return malloc((size_t)len);
 }
 
-static void PrintLastError(void) {
-    const char *file = NULL;
-    uint32_t line = 0;
-    BSL_ERR_GetLastErrorFileLine(&file, &line);
-}
-
 static void throwException(JNIEnv *env, const char *message) {
-    jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+    jclass exceptionClass = (*env)->FindClass(env, "org/openhitls/crypto/exception/CryptoException");
     if (exceptionClass != NULL) {
         (*env)->ThrowNew(env, exceptionClass, message);
     }
+    (*env)->DeleteLocalRef(env, exceptionClass);
 }
 
 static void bslInit() {

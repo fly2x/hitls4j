@@ -1,11 +1,12 @@
-package org.openhitls.crypto.core.mac;
+package org.openhitls.crypto.core.hash;
 
 import java.lang.ref.Cleaner;
 
-public class HMAC {
+public class MessageDigest {
     private static final Cleaner CLEANER = Cleaner.create();
     private final long contextPtr;
     private final CleanerRunnable cleanerRunnable;
+    private final String algorithm;
 
     private static class CleanerRunnable implements Runnable {
         private final long contextPtr;
@@ -22,19 +23,16 @@ public class HMAC {
         }
     }
 
-    // Native method declarations
-    private native long nativeInit(String algorithm, byte[] key);
+    private native void nativeInit(String algorithm);
     private native void nativeUpdate(long contextPtr, byte[] data, int offset, int length);
     private native byte[] nativeDoFinal(long contextPtr);
-    private native void nativeReinit(long contextPtr);
-    private native int nativeGetMacLength(long contextPtr);
     private static native void nativeFree(long contextPtr);
+    private native long getContextPtr();
 
-    public HMAC(String algorithm, byte[] key) {
-        if (algorithm == null) {
-            throw new IllegalArgumentException("Algorithm cannot be null");
-        }
-        this.contextPtr = nativeInit(algorithm, key);
+    public MessageDigest(String algorithm) {
+        this.algorithm = algorithm;
+        nativeInit(algorithm);
+        this.contextPtr = getContextPtr();
         this.cleanerRunnable = new CleanerRunnable(contextPtr);
         CLEANER.register(this, cleanerRunnable);
     }
@@ -60,18 +58,34 @@ public class HMAC {
         return nativeDoFinal(contextPtr);
     }
 
-    public void reinit() {
-        nativeReinit(contextPtr);
+    public byte[] digest(byte[] data) {
+        update(data);
+        return doFinal();
     }
 
-    public int getMacLength() {
-        return nativeGetMacLength(contextPtr);
+    public static byte[] hash(String algorithm, byte[] data) {
+        MessageDigest md = new MessageDigest(algorithm);
+        return md.digest(data);
     }
 
-    // Convenience method to compute HMAC in one call
-    public static byte[] compute(String algorithm, byte[] key, byte[] data) {
-        HMAC hmac = new HMAC(algorithm, key);
-        hmac.update(data);
-        return hmac.doFinal();
+    public String getAlgorithm() {
+        return algorithm;
+    }
+
+    public int getDigestLength() {
+        switch (algorithm.toUpperCase()) {
+            case "SHA-224":
+                return 28;
+            case "SHA-256":
+                return 32;
+            case "SHA-384":
+                return 48;
+            case "SHA-512":
+                return 64;
+            case "SM3":
+                return 32;
+            default:
+                throw new IllegalArgumentException("Unknown algorithm: " + algorithm);
+        }
     }
 }

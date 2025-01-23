@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <include/crypt_errno.h>
 #include <include/crypt_algid.h>
@@ -30,16 +31,49 @@ static void initBSL() {
     BSL_SAL_ThreadRunOnce(&onceControl, bslInit);
 }
 
+// Get algorithm ID from algorithm name
+static int getAlgorithmId(const char *algorithm) {
+    if (strcmp(algorithm, "HMACSHA224") == 0) {
+        return CRYPT_MAC_HMAC_SHA224;
+    } else if (strcmp(algorithm, "HMACSHA256") == 0) {
+        return CRYPT_MAC_HMAC_SHA256;
+    } else if (strcmp(algorithm, "HMACSHA384") == 0) {
+        return CRYPT_MAC_HMAC_SHA384;
+    } else if (strcmp(algorithm, "HMACSHA512") == 0) {
+        return CRYPT_MAC_HMAC_SHA512;
+    } else if (strcmp(algorithm, "HMACSM3") == 0) {
+        return CRYPT_MAC_HMAC_SM3;
+    }
+    return -1;
+}
+
 JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeInit
-  (JNIEnv *env, jobject obj, jint algorithm, jbyteArray key) {
+  (JNIEnv *env, jobject obj, jstring jalgorithm, jbyteArray key) {
     initBSL();
-    // Verify algorithm is supported
-    if (!CRYPT_EAL_MacIsValidAlgId(algorithm)) {
+
+    // Convert Java string to C string
+    const char *algorithm = (*env)->GetStringUTFChars(env, jalgorithm, NULL);
+    if (algorithm == NULL) {
+        throwException(env, "Failed to get algorithm string");
+        return 0;
+    }
+
+    // Get algorithm ID
+    int algorithmId = getAlgorithmId(algorithm);
+    (*env)->ReleaseStringUTFChars(env, jalgorithm, algorithm);
+
+    if (algorithmId == -1) {
         throwException(env, "Unsupported HMAC algorithm");
         return 0;
     }
+
+    // Verify algorithm is supported
+    if (!CRYPT_EAL_MacIsValidAlgId(algorithmId)) {
+        throwException(env, "Invalid HMAC algorithm");
+        return 0;
+    }
     
-    CRYPT_EAL_MacCtx *ctx = CRYPT_EAL_MacNewCtx(algorithm);
+    CRYPT_EAL_MacCtx *ctx = CRYPT_EAL_MacNewCtx(algorithmId);
     if (ctx == NULL) {
         throwException(env, "Failed to create HMAC context");
         return 0;
@@ -83,18 +117,17 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeUpdate
         return;
     }
 
-    jbyte *bytes = (*env)->GetByteArrayElements(env, data, NULL);
-    if (bytes == NULL) {
+    jbyte *dataBytes = (*env)->GetByteArrayElements(env, data, NULL);
+    if (dataBytes == NULL) {
         throwException(env, "Failed to get data bytes");
         return;
     }
 
-    int result = CRYPT_EAL_MacUpdate(ctx, (uint8_t *)(bytes + offset), length);
-    (*env)->ReleaseByteArrayElements(env, data, bytes, JNI_ABORT);
-    
+    int result = CRYPT_EAL_MacUpdate(ctx, (uint8_t *)dataBytes + offset, length);
+    (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
+
     if (result != CRYPT_SUCCESS) {
         throwException(env, "Failed to update HMAC");
-        return;
     }
 }
 
@@ -106,37 +139,37 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeDoFin
         return NULL;
     }
 
-    uint32_t macLen = CRYPT_EAL_GetMacLen(ctx);
-    if (macLen == 0) {
-        throwException(env, "Invalid MAC length");
+    uint32_t macLength = CRYPT_EAL_GetMacLen(ctx);
+    if (macLength == 0) {
+        throwException(env, "Failed to get MAC length");
         return NULL;
     }
 
-    uint8_t *mac = malloc(macLen);
+    uint8_t *mac = malloc(macLength);
     if (mac == NULL) {
         throwException(env, "Failed to allocate memory for MAC");
         return NULL;
     }
 
-    uint32_t outLen = macLen;
+    uint32_t outLen = macLength;
     int result = CRYPT_EAL_MacFinal(ctx, mac, &outLen);
     if (result != CRYPT_SUCCESS) {
         free(mac);
         throwException(env, "Failed to finalize HMAC");
         return NULL;
     }
-    
-    jbyteArray result_array = (*env)->NewByteArray(env, macLen);
-    if (result_array == NULL) {
+
+    jbyteArray macArray = (*env)->NewByteArray(env, outLen);
+    if (macArray == NULL) {
         free(mac);
-        throwException(env, "Failed to create result array");
+        throwException(env, "Failed to create Java byte array");
         return NULL;
     }
-    
-    (*env)->SetByteArrayRegion(env, result_array, 0, macLen, (jbyte *)mac);
+
+    (*env)->SetByteArrayRegion(env, macArray, 0, outLen, (jbyte *)mac);
     free(mac);
 
-    return result_array;
+    return macArray;
 }
 
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeReinit
@@ -150,7 +183,6 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeReinit
     int result = CRYPT_EAL_MacReinit(ctx);
     if (result != CRYPT_SUCCESS) {
         throwException(env, "Failed to reinitialize HMAC");
-        return;
     }
 }
 
@@ -162,19 +194,12 @@ JNIEXPORT jint JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeGetMacLengt
         return 0;
     }
 
-    uint32_t macLen = CRYPT_EAL_GetMacLen(ctx);
-    if (macLen == 0) {
-        throwException(env, "Invalid MAC length");
-        return 0;
-    }
-
-    return (jint)macLen;
+    return CRYPT_EAL_GetMacLen(ctx);
 }
 
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeFree
   (JNIEnv *env, jclass cls, jlong contextPtr) {
     if (contextPtr != 0) {
-        CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)contextPtr;
-        CRYPT_EAL_MacFreeCtx(ctx);
+        CRYPT_EAL_MacFreeCtx((CRYPT_EAL_MacCtx *)contextPtr);
     }
 }

@@ -15,12 +15,6 @@ static void *StdMalloc(uint32_t len) {
     return malloc((size_t)len);
 }
 
-static void PrintLastError(void) {
-    const char *file = NULL;
-    uint32_t line = 0;
-    BSL_ERR_GetLastError();  
-}
-
 static void throwException(JNIEnv *env, const char *message, int32_t errorCode) {
     char fullMessage[256];
     snprintf(fullMessage, sizeof(fullMessage), "%s (Error code: 0x%x)", message, errorCode);
@@ -63,7 +57,6 @@ JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_createNati
 
     CRYPT_EAL_PkeyCtx *pkey = CRYPT_EAL_PkeyNewCtx(CRYPT_PKEY_SM2);
     if (pkey == NULL) {
-        PrintLastError();
         throwException(env, "Failed to create SM2 context", 0);
         return 0;
     }
@@ -124,14 +117,13 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_setNativeUs
 
     if (userId != NULL) {
         jsize userIdLen = (*env)->GetArrayLength(env, userId);
-        const unsigned char *userIdData = (unsigned char *)(*env)->GetByteArrayElements(env, userId, NULL);
+        const unsigned char *userIdData = (const unsigned char *)(*env)->GetByteArrayElements(env, userId, NULL);
         
         if (userIdData != NULL) {
-            ret = CRYPT_EAL_PkeyCtrl(pkey, CRYPT_CTRL_SET_SM2_USER_ID, userIdData, userIdLen);
+            ret = CRYPT_EAL_PkeyCtrl(pkey, CRYPT_CTRL_SET_SM2_USER_ID, (void *)userIdData, userIdLen);
             (*env)->ReleaseByteArrayElements(env, userId, (jbyte *)userIdData, JNI_ABORT);
             
             if (ret != CRYPT_SUCCESS) {
-                PrintLastError();
                 throwException(env, "Failed to set SM2 user ID", ret);
                 return;
             }
@@ -146,7 +138,6 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKey
 
     ret = CRYPT_EAL_PkeyGen(pkey);
     if (ret != CRYPT_SUCCESS) {
-        PrintLastError();
         throwException(env, "Failed to generate key pair", ret);
         return;
     }
@@ -164,7 +155,6 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKey
 
     ret = CRYPT_EAL_PkeyGetPub(pkey, &pubKey);
     if (ret != CRYPT_SUCCESS) {
-        PrintLastError();
         free(pubKey.key.eccPub.data);
         throwException(env, "Failed to get public key", ret);
         return;
@@ -184,7 +174,6 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKey
 
     ret = CRYPT_EAL_PkeyGetPrv(pkey, &privKey);
     if (ret != CRYPT_SUCCESS) {
-        PrintLastError();
         free(pubKey.key.eccPub.data);
         free(privKey.key.eccPrv.data);
         throwException(env, "Failed to get private key", ret);
@@ -243,7 +232,6 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_encry
 
     ret = CRYPT_EAL_PkeyEncrypt(pkey, (uint8_t *)inputData, inputLen, outBuf, &outLen);
     if (ret != CRYPT_SUCCESS) {
-        PrintLastError();
         free(outBuf);
         (*env)->ReleaseByteArrayElements(env, data, inputData, JNI_ABORT);
         throwException(env, "Failed to encrypt data", ret);
@@ -284,7 +272,6 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_decry
 
     ret = CRYPT_EAL_PkeyDecrypt(pkey, (uint8_t *)inputData, inputLen, decryptedData, &decryptedLen);
     if (ret != CRYPT_SUCCESS) {
-        PrintLastError();
         free(decryptedData);
         (*env)->ReleaseByteArrayElements(env, encryptedData, inputData, JNI_ABORT);
         throwException(env, "Failed to decrypt data", ret);
@@ -325,7 +312,6 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_sign
 
     ret = CRYPT_EAL_PkeySign(pkey, CRYPT_MD_SM3, (uint8_t *)inputData, inputLen, signBuf, &signLen);
     if (ret != CRYPT_SUCCESS) {
-        PrintLastError();
         free(signBuf);
         (*env)->ReleaseByteArrayElements(env, data, inputData, JNI_ABORT);
         throwException(env, "Failed to sign data", ret);

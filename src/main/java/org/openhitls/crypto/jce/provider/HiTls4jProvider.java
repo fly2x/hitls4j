@@ -5,9 +5,7 @@ import java.security.Provider;
 import org.openhitls.crypto.jce.key.generator.SM2KeyPairGenerator;
 import org.openhitls.crypto.jce.key.factory.SM2KeyFactory;
 import org.openhitls.crypto.jce.cipher.SM2Cipher;
-import org.openhitls.crypto.jce.digest.SM3MessageDigest;
 import org.openhitls.crypto.jce.signer.SM2Signature;
-import org.openhitls.crypto.jce.mac.HMACSM3;
 import org.openhitls.crypto.jce.key.generator.SM4KeyGenerator;
 
 public final class HiTls4jProvider extends Provider {
@@ -90,13 +88,34 @@ public final class HiTls4jProvider extends Provider {
         // XTS mode
         put("Cipher.SM4/XTS/NOPADDING", "org.openhitls.crypto.jce.HiTls4jProvider$SM4CipherOidImpl SM4/XTS/NOPADDING");
 
-        // Register SM3 MessageDigest
-        put("MessageDigest.SM3", SM3MessageDigest.class.getName());
+        // Register message digests
+        put("MessageDigest.SHA-224", "org.openhitls.crypto.jce.digest.HiTlsMessageDigest$SHA224");
+        put("MessageDigest.SHA-256", "org.openhitls.crypto.jce.digest.HiTlsMessageDigest$SHA256");
+        put("MessageDigest.SHA-384", "org.openhitls.crypto.jce.digest.HiTlsMessageDigest$SHA384");
+        put("MessageDigest.SHA-512", "org.openhitls.crypto.jce.digest.HiTlsMessageDigest$SHA512");
+        put("MessageDigest.SM3", "org.openhitls.crypto.jce.digest.HiTlsMessageDigest$SM3");
+        
+        // Register algorithm aliases
+        put("Alg.Alias.MessageDigest.SHA224", "SHA-224");
+        put("Alg.Alias.MessageDigest.SHA256", "SHA-256");
+        put("Alg.Alias.MessageDigest.SHA384", "SHA-384");
+        put("Alg.Alias.MessageDigest.SHA512", "SHA-512");
 
-        // Register HMAC-SM3
-        put("Mac.HMACSM3", HMACSM3.class.getName());
+        // Register HMAC implementations
+        put("Mac.HMACSHA224", "org.openhitls.crypto.jce.mac.HiTlsHMAC$HMACSHA224");
+        put("Mac.HMACSHA256", "org.openhitls.crypto.jce.mac.HiTlsHMAC$HMACSHA256");
+        put("Mac.HMACSHA384", "org.openhitls.crypto.jce.mac.HiTlsHMAC$HMACSHA384");
+        put("Mac.HMACSHA512", "org.openhitls.crypto.jce.mac.HiTlsHMAC$HMACSHA512");
+        put("Mac.HMACSM3", "org.openhitls.crypto.jce.mac.HiTlsHMAC$HMACSM3");
 
-        // Register KeyGenerator
+        // Register HMAC algorithm aliases
+        put("Alg.Alias.Mac.HMAC-SHA224", "HMACSHA224");
+        put("Alg.Alias.Mac.HMAC-SHA256", "HMACSHA256");
+        put("Alg.Alias.Mac.HMAC-SHA384", "HMACSHA384");
+        put("Alg.Alias.Mac.HMAC-SHA512", "HMACSHA512");
+        put("Alg.Alias.Mac.HMAC-SM3", "HMACSM3");
+
+        // Register SM4 key generator
         put("KeyGenerator.SM4", SM4KeyGenerator.class.getName());
     }
 }
