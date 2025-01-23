@@ -7,6 +7,7 @@ import java.util.Arrays;
 import org.openhitls.crypto.jce.key.SM2PrivateKey;
 import org.openhitls.crypto.jce.key.SM2PublicKey;
 import org.openhitls.crypto.jce.spec.SM2ParameterSpec;
+import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 
 public class SM2KeyFactory extends KeyFactorySpi {
     @Override
@@ -16,51 +17,27 @@ public class SM2KeyFactory extends KeyFactorySpi {
         } else if (keySpec instanceof ECPublicKeySpec) {
             ECPublicKeySpec ecSpec = (ECPublicKeySpec) keySpec;
             ECParameterSpec params = ecSpec.getParams();
-            ECParameterSpec sm2Params = SM2ParameterSpec.getInstance();
             
-            // Verify if the parameters match SM2 curve
-            if (!params.getCurve().equals(sm2Params.getCurve()) ||
-                !params.getGenerator().equals(sm2Params.getGenerator()) ||
-                !params.getOrder().equals(sm2Params.getOrder()) ||
-                params.getCofactor() != sm2Params.getCofactor()) {
-                throw new InvalidKeySpecException("Parameters must match SM2 curve");
+            try {
+                // Get standard SM2 parameters for comparison
+                AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
+                algorithmParameters.init(new ECGenParameterSpec("sm2p256v1"));
+                ECParameterSpec sm2Params = algorithmParameters.getParameterSpec(ECParameterSpec.class);
+                
+                // Verify if the parameters match SM2 curve
+                if (!params.getCurve().equals(sm2Params.getCurve()) ||
+                    !params.getGenerator().equals(sm2Params.getGenerator())) {
+                    throw new InvalidKeySpecException("Parameters must match SM2 curve");
+                }
+            } catch (Exception e) {
+                throw new InvalidKeySpecException("Failed to verify SM2 parameters: " + e.getMessage());
             }
             
-            // Convert ECPoint to SM2PublicKey format
-            ECPoint w = ecSpec.getW();
-            byte[] encoded = new byte[65];
-            encoded[0] = 0x04; // uncompressed point
-            
-            // Convert X coordinate to 32 bytes, big-endian
-            byte[] x = w.getAffineX().toByteArray();
-            if (x.length > 32) {
-                // Remove leading zeros if present
-                x = Arrays.copyOfRange(x, x.length - 32, x.length);
-            } else if (x.length < 32) {
-                // Pad with zeros if needed
-                byte[] padded = new byte[32];
-                System.arraycopy(x, 0, padded, 32 - x.length, x.length);
-                x = padded;
-            }
-            
-            // Convert Y coordinate to 32 bytes, big-endian
-            byte[] y = w.getAffineY().toByteArray();
-            if (y.length > 32) {
-                // Remove leading zeros if present
-                y = Arrays.copyOfRange(y, y.length - 32, y.length);
-            } else if (y.length < 32) {
-                // Pad with zeros if needed
-                byte[] padded = new byte[32];
-                System.arraycopy(y, 0, padded, 32 - y.length, y.length);
-                y = padded;
-            }
-            
-            System.arraycopy(x, 0, encoded, 1, 32);
-            System.arraycopy(y, 0, encoded, 33, 32);
-            
-            return new SM2PublicKey(encoded);
+            return new SM2PublicKey(ecSpec.getW(), params);
         }
-        throw new InvalidKeySpecException("Unsupported key spec: " + keySpec.getClass().getName());
+        
+        throw new InvalidKeySpecException("Unsupported key specification: " + 
+            keySpec.getClass().getName());
     }
 
     @Override
@@ -70,45 +47,46 @@ public class SM2KeyFactory extends KeyFactorySpi {
         } else if (keySpec instanceof ECPrivateKeySpec) {
             ECPrivateKeySpec ecSpec = (ECPrivateKeySpec) keySpec;
             ECParameterSpec params = ecSpec.getParams();
-            ECParameterSpec sm2Params = SM2ParameterSpec.getInstance();
             
-            // Verify if the parameters match SM2 curve
-            if (!params.getCurve().equals(sm2Params.getCurve()) ||
-                !params.getGenerator().equals(sm2Params.getGenerator()) ||
-                !params.getOrder().equals(sm2Params.getOrder()) ||
-                params.getCofactor() != sm2Params.getCofactor()) {
-                throw new InvalidKeySpecException("Parameters must match SM2 curve");
+            try {
+                // Get standard SM2 parameters for comparison
+                AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
+                algorithmParameters.init(new ECGenParameterSpec("sm2p256v1"));
+                ECParameterSpec sm2Params = algorithmParameters.getParameterSpec(ECParameterSpec.class);
+                
+                // Verify if the parameters match SM2 curve
+                if (!params.getCurve().equals(sm2Params.getCurve()) ||
+                    !params.getGenerator().equals(sm2Params.getGenerator())) {
+                    throw new InvalidKeySpecException("Parameters must match SM2 curve");
+                }
+            } catch (Exception e) {
+                throw new InvalidKeySpecException("Failed to verify SM2 parameters: " + e.getMessage());
             }
             
-            // Convert BigInteger to SM2PrivateKey format
-            byte[] s = ecSpec.getS().toByteArray();
-            byte[] encoded = new byte[32];
-            
-            if (s.length > 32) {
-                // Remove leading zeros if present
-                System.arraycopy(s, s.length - 32, encoded, 0, 32);
-            } else {
-                // Pad with zeros if needed
-                System.arraycopy(s, 0, encoded, 32 - s.length, s.length);
-            }
-            
-            return new SM2PrivateKey(encoded);
+            return new SM2PrivateKey(ecSpec.getS(), params);
         }
-        throw new InvalidKeySpecException("Unsupported key spec: " + keySpec.getClass().getName());
+        
+        throw new InvalidKeySpecException("Unsupported key specification: " + 
+            keySpec.getClass().getName());
     }
 
     @Override
-    protected <T extends KeySpec> T engineGetKeySpec(Key key, Class<T> keySpec) 
-            throws InvalidKeySpecException {
+    protected <T extends KeySpec> T engineGetKeySpec(Key key, Class<T> keySpec)
+        throws InvalidKeySpecException {
         if (key instanceof SM2PublicKey) {
+            SM2PublicKey sm2Key = (SM2PublicKey)key;
+            
             if (keySpec.isAssignableFrom(X509EncodedKeySpec.class)) {
                 return keySpec.cast(new X509EncodedKeySpec(key.getEncoded()));
-            } else if (keySpec.isAssignableFrom(ECPublicKeySpec.class)) {
+            }
+            
+            if (keySpec.isAssignableFrom(ECPublicKeySpec.class)) {
                 byte[] encoded = key.getEncoded();
                 if (encoded[0] != 0x04 || encoded.length != 65) {
                     throw new InvalidKeySpecException("Invalid SM2 public key encoding");
                 }
                 
+                // Extract X and Y coordinates
                 byte[] xBytes = Arrays.copyOfRange(encoded, 1, 33);
                 byte[] yBytes = Arrays.copyOfRange(encoded, 33, 65);
                 
@@ -116,19 +94,48 @@ public class SM2KeyFactory extends KeyFactorySpi {
                 BigInteger y = new BigInteger(1, yBytes);
                 ECPoint w = new ECPoint(x, y);
                 
-                return keySpec.cast(new ECPublicKeySpec(w, SM2ParameterSpec.getInstance()));
+                ECParameterSpec params = sm2Key.getParams();
+                if (params == null) {
+                    // If params not stored in key, get default SM2 params
+                    try {
+                        AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
+                        algorithmParameters.init(new ECGenParameterSpec("sm2p256v1"));
+                        params = algorithmParameters.getParameterSpec(ECParameterSpec.class);
+                    } catch (Exception e) {
+                        throw new InvalidKeySpecException("Failed to get SM2 parameters: " + e.getMessage());
+                    }
+                }
+                
+                return keySpec.cast(new ECPublicKeySpec(w, params));
             }
         } else if (key instanceof SM2PrivateKey) {
+            SM2PrivateKey sm2Key = (SM2PrivateKey)key;
+            
             if (keySpec.isAssignableFrom(PKCS8EncodedKeySpec.class)) {
                 return keySpec.cast(new PKCS8EncodedKeySpec(key.getEncoded()));
-            } else if (keySpec.isAssignableFrom(ECPrivateKeySpec.class)) {
+            }
+            
+            if (keySpec.isAssignableFrom(ECPrivateKeySpec.class)) {
                 byte[] encoded = key.getEncoded();
                 BigInteger s = new BigInteger(1, encoded);
                 
-                return keySpec.cast(new ECPrivateKeySpec(s, SM2ParameterSpec.getInstance()));
+                ECParameterSpec params = sm2Key.getParams();
+                if (params == null) {
+                    // If params not stored in key, get default SM2 params
+                    try {
+                        AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
+                        algorithmParameters.init(new ECGenParameterSpec("sm2p256v1"));
+                        params = algorithmParameters.getParameterSpec(ECParameterSpec.class);
+                    } catch (Exception e) {
+                        throw new InvalidKeySpecException("Failed to get SM2 parameters: " + e.getMessage());
+                    }
+                }
+                
+                return keySpec.cast(new ECPrivateKeySpec(s, params));
             }
         }
-        throw new InvalidKeySpecException("Unsupported key spec: " + keySpec.getName());
+        
+        throw new InvalidKeySpecException("Unsupported key specification: " + keySpec.getName());
     }
 
     @Override
@@ -136,6 +143,7 @@ public class SM2KeyFactory extends KeyFactorySpi {
         if (key instanceof SM2PublicKey || key instanceof SM2PrivateKey) {
             return key;
         }
+        
         throw new InvalidKeyException("Unsupported key type: " + key.getClass().getName());
     }
 }

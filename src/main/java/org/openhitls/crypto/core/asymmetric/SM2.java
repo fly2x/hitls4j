@@ -1,35 +1,72 @@
 package org.openhitls.crypto.core.asymmetric;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-
-import org.openhitls.crypto.NativeLoader;
+import java.lang.ref.Cleaner;
 
 public class SM2 {
+    private static final Cleaner CLEANER = Cleaner.create();
+    private final long nativeRef;
     private byte[] publicKey;
     private byte[] privateKey;
+    private byte[] userId;
+    private final CleanerRunnable cleanerRunnable;
+
+    private static class CleanerRunnable implements Runnable {
+        private final long nativeRef;
+
+        CleanerRunnable(long nativeRef) {
+            this.nativeRef = nativeRef;
+        }
+
+        @Override
+        public void run() {
+            if (nativeRef != 0) {
+                freeNativeRef(nativeRef);
+            }
+        }
+    }
 
     public SM2() {
-        generateKeyPair();
+        this.nativeRef = createNativeContext();
+        this.cleanerRunnable = new CleanerRunnable(nativeRef);
+        CLEANER.register(this, cleanerRunnable);
+        generateKeyPair(nativeRef);
     }
 
     public SM2(byte[] publicKey, byte[] privateKey) {
-        this.publicKey = publicKey;
-        this.privateKey = privateKey;
+        this.nativeRef = createNativeContext();
+        this.cleanerRunnable = new CleanerRunnable(nativeRef);
+        CLEANER.register(this, cleanerRunnable);
+        setKeys(publicKey, privateKey);
     }
 
-    private native void generateKeyPair();
-    private native byte[] encrypt(byte[] data);
-    private native byte[] decrypt(byte[] encryptedData);
-    private native byte[] sign(byte[] data);
-    private native boolean verify(byte[] data, byte[] signature);
+    private static native long createNativeContext();
+    private static native void freeNativeRef(long nativeRef);
+    private native void generateKeyPair(long nativeRef);
+    private native byte[] encrypt(long nativeRef, byte[] data);
+    private native byte[] decrypt(long nativeRef, byte[] encryptedData);
+    private native byte[] sign(long nativeRef, byte[] data);
+    private native boolean verify(long nativeRef, byte[] data, byte[] signature);
 
     void setKeys(byte[] publicKey, byte[] privateKey) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
+        setNativeKeys(nativeRef, publicKey, privateKey);
+    }
+
+    private native void setNativeKeys(long nativeRef, byte[] publicKey, byte[] privateKey);
+
+    public void setUserId(byte[] userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("UserId cannot be null");
+        }
+        this.userId = userId.clone();
+        setNativeUserId(nativeRef, userId);
+    }
+
+    private native void setNativeUserId(long nativeRef, byte[] userId);
+
+    public byte[] getUserId() {
+        return userId != null ? userId.clone() : null;
     }
 
     public byte[] getPublicKey() {
@@ -53,7 +90,7 @@ public class SM2 {
         if (publicKey == null) {
             throw new IllegalStateException("Public key not initialized");
         }
-        return encrypt(data);
+        return encrypt(nativeRef, data);
     }
 
     /**
@@ -69,7 +106,7 @@ public class SM2 {
         if (privateKey == null) {
             throw new IllegalStateException("Private key not initialized");
         }
-        return decrypt(encryptedData);
+        return decrypt(nativeRef, encryptedData);
     }
 
     /**
@@ -85,7 +122,7 @@ public class SM2 {
         if (privateKey == null) {
             throw new IllegalStateException("Private key not initialized");
         }
-        return sign(data);
+        return sign(nativeRef, data);
     }
 
     /**
@@ -102,6 +139,6 @@ public class SM2 {
         if (publicKey == null) {
             throw new IllegalStateException("Public key not initialized");
         }
-        return verify(data, signature);
+        return verify(nativeRef, data, signature);
     }
-} 
+}

@@ -53,7 +53,10 @@ public final class HiTls4jProvider extends Provider {
         put("KeyFactory.EC", SM2KeyFactory.class.getName());
         put("Cipher.EC", SM2Cipher.class.getName());
         put("Signature.EC", SM2Signature.class.getName());
-        put("AlgorithmParameters.EC", "org.openhitls.crypto.jce.spec.SM2Parameters");
+        put("Signature.SM3withSM2", SM2Signature.class.getName());
+        put("AlgorithmParameters.EC", ECParameters.class.getName());
+        put("AlgorithmParameterGenerator.EC", "sun.security.ec.ECParameterGenerator");
+        put("KeyAgreement.EC", "sun.security.ec.ECDHKeyAgreement");
 
         // Register specific transformations
         // ECB mode

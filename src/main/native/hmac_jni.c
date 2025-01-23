@@ -30,19 +30,19 @@ static void initBSL() {
     BSL_SAL_ThreadRunOnce(&onceControl, bslInit);
 }
 
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeInit
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeInit
   (JNIEnv *env, jobject obj, jint algorithm, jbyteArray key) {
     initBSL();
     // Verify algorithm is supported
     if (!CRYPT_EAL_MacIsValidAlgId(algorithm)) {
         throwException(env, "Unsupported HMAC algorithm");
-        return;
+        return 0;
     }
     
     CRYPT_EAL_MacCtx *ctx = CRYPT_EAL_MacNewCtx(algorithm);
     if (ctx == NULL) {
         throwException(env, "Failed to create HMAC context");
-        return;
+        return 0;
     }
 
     jbyte *keyBytes = NULL;
@@ -53,7 +53,7 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeInit
         if (keyBytes == NULL) {
             CRYPT_EAL_MacFreeCtx(ctx);
             throwException(env, "Failed to get key bytes");
-            return;
+            return 0;
         }
         keyLen = (*env)->GetArrayLength(env, key);
     }
@@ -65,33 +65,19 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeInit
         }
         CRYPT_EAL_MacFreeCtx(ctx);
         throwException(env, "Failed to initialize HMAC");
-        return;
+        return 0;
     }
 
     if (keyBytes != NULL) {
         (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
     }
     
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    if (fid == NULL) {
-        CRYPT_EAL_MacFreeCtx(ctx);
-        throwException(env, "Failed to get contextPtr field");
-        return;
-    }
-    (*env)->SetLongField(env, obj, fid, (jlong)ctx);
+    return (jlong)ctx;
 }
 
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeUpdate
-  (JNIEnv *env, jobject obj, jbyteArray data, jint offset, jint length) {
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    if (fid == NULL) {
-        throwException(env, "Failed to get contextPtr field");
-        return;
-    }
-    
-    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)(*env)->GetLongField(env, obj, fid);
+  (JNIEnv *env, jobject obj, jlong contextPtr, jbyteArray data, jint offset, jint length) {
+    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)contextPtr;
     if (ctx == NULL) {
         throwException(env, "HMAC context is null");
         return;
@@ -113,15 +99,8 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeUpdate
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeDoFinal
-  (JNIEnv *env, jobject obj) {
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    if (fid == NULL) {
-        throwException(env, "Failed to get contextPtr field");
-        return NULL;
-    }
-    
-    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)(*env)->GetLongField(env, obj, fid);
+  (JNIEnv *env, jobject obj, jlong contextPtr) {
+    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)contextPtr;
     if (ctx == NULL) {
         throwException(env, "HMAC context is null");
         return NULL;
@@ -161,15 +140,8 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeDoFin
 }
 
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeReinit
-  (JNIEnv *env, jobject obj) {
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    if (fid == NULL) {
-        throwException(env, "Failed to get contextPtr field");
-        return;
-    }
-    
-    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)(*env)->GetLongField(env, obj, fid);
+  (JNIEnv *env, jobject obj, jlong contextPtr) {
+    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)contextPtr;
     if (ctx == NULL) {
         throwException(env, "HMAC context is null");
         return;
@@ -183,15 +155,8 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeReinit
 }
 
 JNIEXPORT jint JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeGetMacLength
-  (JNIEnv *env, jobject obj) {
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    if (fid == NULL) {
-        throwException(env, "Failed to get contextPtr field");
-        return 0;
-    }
-    
-    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)(*env)->GetLongField(env, obj, fid);
+  (JNIEnv *env, jobject obj, jlong contextPtr) {
+    CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)contextPtr;
     if (ctx == NULL) {
         throwException(env, "HMAC context is null");
         return 0;
@@ -204,4 +169,12 @@ JNIEXPORT jint JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeGetMacLengt
     }
 
     return (jint)macLen;
-} 
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_mac_HMAC_nativeFree
+  (JNIEnv *env, jclass cls, jlong contextPtr) {
+    if (contextPtr != 0) {
+        CRYPT_EAL_MacCtx *ctx = (CRYPT_EAL_MacCtx *)contextPtr;
+        CRYPT_EAL_MacFreeCtx(ctx);
+    }
+}

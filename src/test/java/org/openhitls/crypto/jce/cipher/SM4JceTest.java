@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CountDownLatch;
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.Security;
@@ -46,6 +47,18 @@ public class SM4JceTest extends org.openhitls.crypto.BaseTest {
         (byte)0x09, (byte)0x0a, (byte)0x0b, (byte)0x0c, (byte)0x0d, (byte)0x0e, (byte)0x0f, (byte)0x10,
         (byte)0x11, (byte)0x12, (byte)0x13, (byte)0x14
     };
+
+    @Test
+    public void testSm4KeyGen() throws Exception {
+        // Register HITLS provider if not already registered
+        if (Security.getProvider(HiTls4jProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new HiTls4jProvider());
+        }
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", HiTls4jProvider.PROVIDER_NAME);
+        keyGen.init(128);
+        byte[] key = keyGen.generateKey().getEncoded();
+        assertEquals(128 / 8, key.length);
+    }
 
     @Test
     public void testSm4CbcJce() throws Exception {

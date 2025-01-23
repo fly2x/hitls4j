@@ -1,10 +1,28 @@
 package org.openhitls.crypto.core.symmetric;
 
-import org.openhitls.crypto.NativeLoader;
-
+import java.lang.ref.Cleaner;
 import java.util.Arrays;
 
 public class SM4 {
+    private static final Cleaner CLEANER = Cleaner.create();
+    private final Cleaner.Cleanable cleanable;
+    private final long contextPtr;
+
+    private static class CleanerRunnable implements Runnable {
+        private final long contextPtr;
+
+        CleanerRunnable(long contextPtr) {
+            this.contextPtr = contextPtr;
+        }
+
+        @Override
+        public void run() {
+            if (contextPtr != 0) {
+                nativeFree(contextPtr);
+            }
+        }
+    }
+
     // Algorithm modes from crypt_algid.h
     public static final int SM4_ECB = 10501;  // BSL_CID_SM4_ECB
     public static final int SM4_CBC = 10502;  // BSL_CID_SM4_CBC
@@ -26,7 +44,6 @@ public class SM4 {
     public static final int PADDING_PKCS5 = 4;     // CRYPT_PADDING_PKCS5
     public static final int PADDING_PKCS7 = 5;     // CRYPT_PADDING_PKCS7
 
-    private long contextPtr;
     private int algorithm;
     private int paddingType;
     private boolean isEncryption;
@@ -74,10 +91,12 @@ public class SM4 {
         this.paddingType = padding;
         
         nativeInit(algorithm, this.key, this.iv, mode);
+        this.contextPtr = getContextPtr();
+        this.cleanable = CLEANER.register(this, new CleanerRunnable(contextPtr));
         
         // Only set padding for block cipher modes (ECB and CBC)
         if (algorithm == SM4_ECB || algorithm == SM4_CBC) {
-            nativeSetPadding(this.paddingType);
+            nativeSetPadding(paddingType);
         }
     }
 
@@ -91,6 +110,7 @@ public class SM4 {
 
     // Native method declarations
     private native void nativeInit(int algorithm, byte[] key, byte[] iv, int mode);
+    private native long getContextPtr();
     private native void nativeSetPadding(int paddingType);
     private native void nativeEncryptUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset, int[] outLen);
     private native void nativeDecryptUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset, int[] outLen);
@@ -98,6 +118,7 @@ public class SM4 {
     private native byte[] nativeDecryptFinal();
     private native void nativeReinit();
     private native int nativeGetBlockSize();
+    private static native void nativeFree(long contextPtr);
 
     public byte[] encryptUpdate(byte[] input, int inputOffset, int inputLen) {
         if (!isEncryption) {

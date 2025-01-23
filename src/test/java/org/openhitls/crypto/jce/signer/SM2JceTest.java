@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.*;
 import org.openhitls.crypto.jce.provider.HiTls4jProvider;
+import org.openhitls.crypto.jce.spec.SM2ParameterSpec;
 
 public class SM2JceTest {
     private static final Provider provider = new HiTls4jProvider();
@@ -20,11 +21,11 @@ public class SM2JceTest {
     @Test
     public void testSM2KeyGeneration() throws Exception {
         // Initialize with ECGenParameterSpec
-        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", provider);
+        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         params.init(new ECGenParameterSpec("sm2p256v1"));
         ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
 
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", provider);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         keyGen.initialize(ecParameterSpec);
         KeyPair keyPair = keyGen.generateKeyPair();
 
@@ -44,7 +45,7 @@ public class SM2JceTest {
         ECPoint w = new ECPoint(new BigInteger(xHex, 16), new BigInteger(yHex, 16));
 
         // Get parameters
-        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", provider);
+        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         params.init(new ECGenParameterSpec("sm2p256v1"));
         ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
 
@@ -67,5 +68,49 @@ public class SM2JceTest {
         assertEquals("X coordinate should match", w.getAffineX(), pubSpecResult.getW().getAffineX());
         assertEquals("Y coordinate should match", w.getAffineY(), pubSpecResult.getW().getAffineY());
         assertEquals("Private key value should match", new BigInteger(privateHex, 16), privSpecResult.getS());
+    }
+
+    @Test
+    public void testSignatureWithUserId() throws Exception {
+        // Initialize with ECGenParameterSpec
+        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
+        params.init(new ECGenParameterSpec("sm2p256v1"));
+        ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
+
+        // Generate key pair
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
+        keyGen.initialize(ecParameterSpec);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        // Test data
+        byte[] message = "Hello, SM2!".getBytes();
+        byte[] userId = "MyCustomUserId@example.com".getBytes();
+
+        // Create SM2ParameterSpec with custom userId
+        SM2ParameterSpec sm2Spec = new SM2ParameterSpec(userId);
+
+        // Sign with custom userId
+        Signature signer = Signature.getInstance("SM3withSM2", provider);
+        signer.setParameter(sm2Spec);
+        signer.initSign(keyPair.getPrivate());
+        signer.update(message);
+        byte[] signature = signer.sign();
+
+        // Verify with same userId
+        Signature verifier = Signature.getInstance("SM3withSM2", provider);
+        verifier.setParameter(sm2Spec);
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(message);
+        assertTrue("Signature verification should succeed with correct userId", verifier.verify(signature));
+
+        // Verify with different userId should fail
+        byte[] differentUserId = "DifferentUserId@example.com".getBytes();
+        SM2ParameterSpec differentSpec = new SM2ParameterSpec(differentUserId);
+        
+        verifier = Signature.getInstance("SM3withSM2", provider);
+        verifier.setParameter(differentSpec);
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(message);
+        assertFalse("Signature verification should fail with different userId", verifier.verify(signature));
     }
 }

@@ -37,11 +37,13 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeInit
     initBSL();
     CRYPT_EAL_MdCTX *ctx = CRYPT_EAL_MdNewCtx(CRYPT_MD_SM3);
     if (ctx == NULL) {
+        throwException(env, "Failed to create SM3 context");
         return;
     }
     
     if (CRYPT_EAL_MdInit(ctx) != CRYPT_SUCCESS) {
         CRYPT_EAL_MdFreeCtx(ctx);
+        throwException(env, "Failed to initialize SM3 context");
         return;
     }
     
@@ -50,18 +52,24 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeInit
     (*env)->SetLongField(env, obj, fid, (jlong)ctx);
 }
 
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeUpdate
-  (JNIEnv *env, jobject obj, jbyteArray data, jint offset, jint length) {
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_hash_SM3_getContextPtr
+  (JNIEnv *env, jobject obj) {
     jclass cls = (*env)->GetObjectClass(env, obj);
     jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    CRYPT_EAL_MdCTX *ctx = (CRYPT_EAL_MdCTX *)(*env)->GetLongField(env, obj, fid);
-    
+    return (*env)->GetLongField(env, obj, fid);
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeUpdate
+  (JNIEnv *env, jobject obj, jlong contextPtr, jbyteArray data, jint offset, jint length) {
+    CRYPT_EAL_MdCTX *ctx = (CRYPT_EAL_MdCTX *)contextPtr;
     if (ctx == NULL) {
+        throwException(env, "Invalid context");
         return;
     }
 
     jbyte *bytes = (*env)->GetByteArrayElements(env, data, NULL);
     if (bytes == NULL) {
+        throwException(env, "Failed to get byte array elements");
         return;
     }
 
@@ -69,17 +77,16 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeUpdate
     (*env)->ReleaseByteArrayElements(env, data, bytes, JNI_ABORT);
     
     if (result != CRYPT_SUCCESS) {
+        throwException(env, "Failed to update SM3 context");
         return;
     }
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeDoFinal
-  (JNIEnv *env, jobject obj) {
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
-    CRYPT_EAL_MdCTX *ctx = (CRYPT_EAL_MdCTX *)(*env)->GetLongField(env, obj, fid);
-    
+  (JNIEnv *env, jobject obj, jlong contextPtr) {
+    CRYPT_EAL_MdCTX *ctx = (CRYPT_EAL_MdCTX *)contextPtr;
     if (ctx == NULL) {
+        throwException(env, "Invalid context");
         return NULL;
     }
 
@@ -87,22 +94,24 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeDoFin
     uint32_t outLen = sizeof(hash);
     
     if (CRYPT_EAL_MdFinal(ctx, hash, &outLen) != CRYPT_SUCCESS) {
-        CRYPT_EAL_MdFreeCtx(ctx);
-        (*env)->SetLongField(env, obj, fid, 0L);
+        throwException(env, "Failed to finalize SM3 hash");
         return NULL;
     }
     
     jbyteArray result = (*env)->NewByteArray(env, 32);
     if (result == NULL) {
-        CRYPT_EAL_MdFreeCtx(ctx);
-        (*env)->SetLongField(env, obj, fid, 0L);
+        throwException(env, "Failed to create result array");
         return NULL;
     }
     
     (*env)->SetByteArrayRegion(env, result, 0, 32, (jbyte *)hash);
-
-    CRYPT_EAL_MdFreeCtx(ctx);
-    (*env)->SetLongField(env, obj, fid, 0L);
-
     return result;
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_hash_SM3_nativeFree
+  (JNIEnv *env, jclass cls, jlong contextPtr) {
+    if (contextPtr != 0) {
+        CRYPT_EAL_MdCTX *ctx = (CRYPT_EAL_MdCTX *)contextPtr;
+        CRYPT_EAL_MdFreeCtx(ctx);
+    }
 }

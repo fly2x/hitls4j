@@ -132,6 +132,17 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_symmetric_SM4_nativeInit
     (*env)->SetLongField(env, obj, fid, (jlong)ctx);
 }
 
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_symmetric_SM4_getContextPtr
+  (JNIEnv *env, jobject obj) {
+    jclass cls = (*env)->GetObjectClass(env, obj);
+    jfieldID fid = (*env)->GetFieldID(env, cls, "contextPtr", "J");
+    if (fid == NULL) {
+        throwException(env, "Failed to get contextPtr field");
+        return 0;
+    }
+    return (*env)->GetLongField(env, obj, fid);
+}
+
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_symmetric_SM4_nativeSetPadding
   (JNIEnv *env, jobject obj, jint paddingType) {
     jclass cls = (*env)->GetObjectClass(env, obj);
@@ -149,8 +160,18 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_symmetric_SM4_nativeSetPad
 
     int result = CRYPT_EAL_CipherSetPadding(ctx, paddingType);
     if (result != CRYPT_SUCCESS) {
-        throwException(env, "Failed to set padding");
+        char errMsg[256];
+        snprintf(errMsg, sizeof(errMsg), "Failed to set padding (error code: %d)", result);
+        throwException(env, errMsg);
         return;
+    }
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_symmetric_SM4_nativeFree
+  (JNIEnv *env, jclass cls, jlong contextPtr) {
+    if (contextPtr != 0) {
+        CRYPT_EAL_CipherCtx *ctx = (CRYPT_EAL_CipherCtx *)contextPtr;
+        CRYPT_EAL_CipherFreeCtx(ctx);
     }
 }
 
