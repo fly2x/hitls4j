@@ -9,7 +9,7 @@
 #include <include/bsl_err.h>
 #include <include/crypt_eal_rand.h>
 #include <pthread.h>
-#include "org_openhitls_crypto_core_asymmetric_SM2.h"
+#include "org_openhitls_crypto_core_asymmetric_ECDSA.h"
 
 static void *StdMalloc(uint32_t len) {
     return malloc((size_t)len);
@@ -50,45 +50,50 @@ static void initRand(JNIEnv *env) {
     }
 }
 
-// Add curve mapping function
+// Update curve IDs to match OpenHiTLS
 static int getCurveId(const char *curveName) {
     if (strcmp(curveName, "sm2p256v1") == 0) {
-        return CRYPT_ECC_SM2;
-    } else if (strcmp(curveName, "secp256r1") == 0) {
-        return CRYPT_ECC_NIST_P256;
-    } else if (strcmp(curveName, "secp384r1") == 0) {
-        return CRYPT_ECC_NIST_P384;
-    } else if (strcmp(curveName, "secp521r1") == 0) {
-        return CRYPT_ECC_NIST_P521;
+        return CRYPT_ECC_SM2;  // Use correct constant
+    } else if (strcmp(curveName, "secp256r1") == 0 || 
+               strcmp(curveName, "prime256v1") == 0 || 
+               strcmp(curveName, "p-256") == 0) {
+        return CRYPT_ECC_NISTP256;  // Use correct constant
+    } else if (strcmp(curveName, "secp384r1") == 0 || 
+               strcmp(curveName, "p-384") == 0) {
+        return CRYPT_ECC_NISTP384;  // Use correct constant
+    } else if (strcmp(curveName, "secp521r1") == 0 || 
+               strcmp(curveName, "p-521") == 0) {
+        return CRYPT_ECC_NISTP521;  // Use correct constant
     }
     return -1;
 }
 
-// Get hash algorithm based on curve
-static int getHashAlgorithm(const char *curveName) {
-    if (strcmp(curveName, "sm2p256v1") == 0) {
-        return CRYPT_MD_SM3;
-    } else if (strcmp(curveName, "secp256r1") == 0) {
-        return CRYPT_MD_SHA256;
-    } else if (strcmp(curveName, "secp384r1") == 0) {
-        return CRYPT_MD_SHA384;
-    } else if (strcmp(curveName, "secp521r1") == 0) {
-        return CRYPT_MD_SHA512;
+// Map Java hash algorithm constants to OpenHiTLS MD IDs
+static int getMdId(int hashAlg) {
+    switch (hashAlg) {
+        case 1:  // HASH_ALG_SM3
+            return CRYPT_MD_SM3;
+        case 2:  // HASH_ALG_SHA1
+            return CRYPT_MD_SHA1;
+        case 3:  // HASH_ALG_SHA224
+            return CRYPT_MD_SHA224;
+        case 4:  // HASH_ALG_SHA256
+            return CRYPT_MD_SHA256;
+        case 5:  // HASH_ALG_SHA384
+            return CRYPT_MD_SHA384;
+        case 6:  // HASH_ALG_SHA512
+            return CRYPT_MD_SHA512;
+        default:
+            return CRYPT_MD_SHA256; // Default to SHA256
     }
-    return CRYPT_MD_SHA256;  // Default
 }
 
-JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_createNativeContext
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_createNativeContext
   (JNIEnv *env, jclass cls, jstring jcurveName) {
     initBSL();
     initRand(env);
 
     const char *curveName = (*env)->GetStringUTFChars(env, jcurveName, NULL);
-    if (curveName == NULL) {
-        throwException(env, "Failed to get curve name", 0);
-        return 0;
-    }
-
     int curveId = getCurveId(curveName);
     (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
 
@@ -97,25 +102,45 @@ JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_createNati
         return 0;
     }
 
-    // Create context with specified curve
-    CRYPT_EAL_PkeyCtx *pkey = CRYPT_EAL_PkeyNewCtx(CRYPT_PKEY_ECC);
-    if (pkey == NULL) {
-        throwException(env, "Failed to create ECC context", 0);
-        return 0;
+    // Create context based on curve type
+    CRYPT_EAL_PkeyCtx *pkey;
+    int ret;
+    if (curveId == CRYPT_ECC_SM2) {
+        pkey = CRYPT_EAL_PkeyNewCtx(CRYPT_PKEY_SM2);
+        if (pkey == NULL) {
+            throwException(env, "Failed to create context", 0);
+            return 0;
+        }
+        
+        // No need to set curve parameters for SM2 as it's fixed to sm2p256v1
+        
+        // Set the default user ID for SM2
+        const char *defaultUserId = "1234567812345678";
+        ret = CRYPT_EAL_PkeyCtrl(pkey, CRYPT_CTRL_SET_SM2_USER_ID, (void *)defaultUserId, strlen(defaultUserId));
+        if (ret != CRYPT_SUCCESS) {
+            CRYPT_EAL_PkeyFreeCtx(pkey);
+            throwException(env, "Failed to set default user ID", ret);
+            return 0;
+        }
+    } else {
+        pkey = CRYPT_EAL_PkeyNewCtx(CRYPT_PKEY_ECDSA);
+        if (pkey == NULL) {
+            throwException(env, "Failed to create context", 0);
+            return 0;
+        }
+        
+        // For ECDSA, we need to set the curve ID
+        ret = CRYPT_EAL_PkeySetParaById(pkey, curveId);
+        if (ret != CRYPT_SUCCESS) {
+            CRYPT_EAL_PkeyFreeCtx(pkey);
+            throwException(env, "Failed to set curve parameters", ret);
+            return 0;
+        }
     }
-
-    // Set curve parameters
-    int ret = CRYPT_EAL_PkeyCtrl(pkey, CRYPT_CTRL_SET_ECC_CURVE, &curveId, sizeof(curveId));
-    if (ret != CRYPT_SUCCESS) {
-        CRYPT_EAL_PkeyFreeCtx(pkey);
-        throwException(env, "Failed to set curve parameters", ret);
-        return 0;
-    }
-
     return (jlong)pkey;
 }
 
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_freeNativeRef
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_freeNativeRef
   (JNIEnv *env, jclass cls, jlong nativeRef) {
     if (nativeRef != 0) {
         CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
@@ -123,15 +148,28 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_freeNativeR
     }
 }
 
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_setNativeKeys
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_setNativeKeys
   (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray publicKey, jbyteArray privateKey) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
 
+    // Get curve name to determine key type
+    jclass cls = (*env)->GetObjectClass(env, obj);
+    jfieldID fidCurveName = (*env)->GetFieldID(env, cls, "curveName", "Ljava/lang/String;");
+    if (fidCurveName == NULL) {
+        throwException(env, "Failed to get curveName field", 0);
+        return;
+    }
+
+    jstring jcurveName = (*env)->GetObjectField(env, obj, fidCurveName);
+    const char *curveName = (*env)->GetStringUTFChars(env, jcurveName, NULL);
+    int keyType = strcmp(curveName, "sm2p256v1") == 0 ? CRYPT_PKEY_SM2 : CRYPT_PKEY_ECDSA;
+    (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
+
     if (publicKey != NULL) {
         CRYPT_EAL_PkeyPub pubKey;
         memset(&pubKey, 0, sizeof(CRYPT_EAL_PkeyPub));
-        pubKey.id = CRYPT_PKEY_SM2;
+        pubKey.id = keyType;
         jsize pubKeyLen = (*env)->GetArrayLength(env, publicKey);
         pubKey.key.eccPub.data = (uint8_t *)(*env)->GetByteArrayElements(env, publicKey, NULL);
         pubKey.key.eccPub.len = pubKeyLen;
@@ -147,7 +185,7 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_setNativeKe
     if (privateKey != NULL) {
         CRYPT_EAL_PkeyPrv privKey;
         memset(&privKey, 0, sizeof(CRYPT_EAL_PkeyPrv));
-        privKey.id = CRYPT_PKEY_SM2;
+        privKey.id = keyType;
         jsize privKeyLen = (*env)->GetArrayLength(env, privateKey);
         privKey.key.eccPrv.data = (uint8_t *)(*env)->GetByteArrayElements(env, privateKey, NULL);
         privKey.key.eccPrv.len = privKeyLen;
@@ -161,7 +199,7 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_setNativeKe
     }
 }
 
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_setNativeUserId
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_setNativeUserId
   (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray userId) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
@@ -182,23 +220,61 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_setNativeUs
     }
 }
 
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKeyPair
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_generateKeyPair
   (JNIEnv *env, jobject obj, jlong nativeRef) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
 
+    // Get curve name to determine key type and size
+    jclass cls = (*env)->GetObjectClass(env, obj);
+    jfieldID fidCurveName = (*env)->GetFieldID(env, cls, "curveName", "Ljava/lang/String;");
+    if (fidCurveName == NULL) {
+        throwException(env, "Failed to get curveName field", 0);
+        return;
+    }
+
+    jstring jcurveName = (*env)->GetObjectField(env, obj, fidCurveName);
+    const char *curveName = (*env)->GetStringUTFChars(env, jcurveName, NULL);
+    int curveId = getCurveId(curveName);
+    int keyType = (curveId == CRYPT_ECC_SM2) ? CRYPT_PKEY_SM2 : CRYPT_PKEY_ECDSA;
+
+    // Get key sizes based on curve
+    int privKeySize;
+    int pubKeySize;
+    switch (curveId) {
+        case CRYPT_ECC_SM2:
+        case CRYPT_ECC_NISTP256:
+            privKeySize = 32;  // 256 bits
+            pubKeySize = 65;   // 0x04 + 32 bytes X + 32 bytes Y
+            break;
+        case CRYPT_ECC_NISTP384:
+            privKeySize = 48;  // 384 bits
+            pubKeySize = 97;   // 0x04 + 48 bytes X + 48 bytes Y
+            break;
+        case CRYPT_ECC_NISTP521:
+            privKeySize = 66;  // 521 bits
+            pubKeySize = 133;   // 0x04 + 66 bytes X + 66 bytes Y
+            break;
+        default:
+            (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
+            throwException(env, "Unsupported curve", 0);
+            return;
+    }
+    (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
+
+    // Generate key pair
     ret = CRYPT_EAL_PkeyGen(pkey);
     if (ret != CRYPT_SUCCESS) {
         throwException(env, "Failed to generate key pair", ret);
         return;
     }
 
+    // Get public key
     CRYPT_EAL_PkeyPub pubKey;
     memset(&pubKey, 0, sizeof(CRYPT_EAL_PkeyPub));
-    pubKey.id = CRYPT_PKEY_SM2;
-
-    pubKey.key.eccPub.data = malloc(128);
-    pubKey.key.eccPub.len = 128;
+    pubKey.id = keyType;
+    pubKey.key.eccPub.data = malloc(pubKeySize);
+    pubKey.key.eccPub.len = pubKeySize;
     if (pubKey.key.eccPub.data == NULL) {
         throwException(env, "Failed to allocate memory for public key", 0);
         return;
@@ -211,12 +287,12 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKey
         return;
     }
 
+    // Get private key
     CRYPT_EAL_PkeyPrv privKey;
     memset(&privKey, 0, sizeof(CRYPT_EAL_PkeyPrv));
-    privKey.id = CRYPT_PKEY_SM2;
-
-    privKey.key.eccPrv.data = malloc(32);
-    privKey.key.eccPrv.len = 32;
+    privKey.id = keyType;
+    privKey.key.eccPrv.data = malloc(privKeySize);
+    privKey.key.eccPrv.len = privKeySize;
     if (privKey.key.eccPrv.data == NULL) {
         free(pubKey.key.eccPub.data);
         throwException(env, "Failed to allocate memory for private key", 0);
@@ -231,13 +307,12 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKey
         return;
     }
 
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fidPublicKey = (*env)->GetFieldID(env, cls, "publicKey", "[B");
-    jfieldID fidPrivateKey = (*env)->GetFieldID(env, cls, "privateKey", "[B");
-    if (fidPublicKey == NULL || fidPrivateKey == NULL) {
+    // Set the keys in Java object
+    jmethodID mid = (*env)->GetMethodID(env, cls, "setKeys", "([B[B)V");
+    if (mid == NULL) {
         free(pubKey.key.eccPub.data);
         free(privKey.key.eccPrv.data);
-        throwException(env, "Failed to get field IDs", 0);
+        throwException(env, "Failed to get setKeys method", 0);
         return;
     }
 
@@ -246,21 +321,19 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_generateKey
     if (pubKeyArray == NULL || privKeyArray == NULL) {
         free(pubKey.key.eccPub.data);
         free(privKey.key.eccPrv.data);
-        throwException(env, "Failed to create byte arrays", 0);
+        throwException(env, "Failed to create key arrays", 0);
         return;
     }
 
     (*env)->SetByteArrayRegion(env, pubKeyArray, 0, pubKey.key.eccPub.len, (jbyte *)pubKey.key.eccPub.data);
     (*env)->SetByteArrayRegion(env, privKeyArray, 0, privKey.key.eccPrv.len, (jbyte *)privKey.key.eccPrv.data);
-
-    (*env)->SetObjectField(env, obj, fidPublicKey, pubKeyArray);
-    (*env)->SetObjectField(env, obj, fidPrivateKey, privKeyArray);
+    (*env)->CallVoidMethod(env, obj, mid, pubKeyArray, privKeyArray);
 
     free(pubKey.key.eccPub.data);
     free(privKey.key.eccPrv.data);
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_encrypt
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_encrypt
   (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray data) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
@@ -300,7 +373,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_encry
     return result;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_decrypt
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_decrypt
   (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray encryptedData) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
@@ -340,24 +413,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_decry
     return result;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_sign
-  (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray data) {
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_sign
+  (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray data, jint hashAlg) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
     jbyteArray result = NULL;
-
-    // Get curve name from Java object
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fidCurveName = (*env)->GetFieldID(env, cls, "curveName", "Ljava/lang/String;");
-    if (fidCurveName == NULL) {
-        throwException(env, "Failed to get curveName field", 0);
-        return NULL;
-    }
-
-    jstring jcurveName = (*env)->GetObjectField(env, obj, fidCurveName);
-    const char *curveName = (*env)->GetStringUTFChars(env, jcurveName, NULL);
-    int hashAlg = getHashAlgorithm(curveName);
-    (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
 
     jbyte *inputData = (*env)->GetByteArrayElements(env, data, NULL);
     jsize inputLen = (*env)->GetArrayLength(env, data);
@@ -374,7 +434,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_sign
         return NULL;
     }
 
-    ret = CRYPT_EAL_PkeySign(pkey, hashAlg, (uint8_t *)inputData, inputLen, signBuf, &signLen);
+    // Map Java hash algorithm to OpenHiTLS MD ID
+    int mdId = getMdId(hashAlg);
+    ret = CRYPT_EAL_PkeySign(pkey, mdId, (uint8_t *)inputData, inputLen, signBuf, &signLen);
     if (ret != CRYPT_SUCCESS) {
         free(signBuf);
         (*env)->ReleaseByteArrayElements(env, data, inputData, JNI_ABORT);
@@ -393,23 +455,10 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_sign
     return result;
 }
 
-JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_verify
-  (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray data, jbyteArray signature) {
+JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_asymmetric_ECDSA_verify
+  (JNIEnv *env, jobject obj, jlong nativeRef, jbyteArray data, jbyteArray signature, jint hashAlg) {
     CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
     int ret;
-
-    // Get curve name from Java object
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jfieldID fidCurveName = (*env)->GetFieldID(env, cls, "curveName", "Ljava/lang/String;");
-    if (fidCurveName == NULL) {
-        throwException(env, "Failed to get curveName field", 0);
-        return JNI_FALSE;
-    }
-
-    jstring jcurveName = (*env)->GetObjectField(env, obj, fidCurveName);
-    const char *curveName = (*env)->GetStringUTFChars(env, jcurveName, NULL);
-    int hashAlg = getHashAlgorithm(curveName);
-    (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
 
     jbyte *inputData = (*env)->GetByteArrayElements(env, data, NULL);
     jsize inputLen = (*env)->GetArrayLength(env, data);
@@ -426,7 +475,9 @@ JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_asymmetric_SM2_verify
         return JNI_FALSE;
     }
 
-    ret = CRYPT_EAL_PkeyVerify(pkey, hashAlg, (uint8_t *)inputData, inputLen, (uint8_t *)signData, signLen);
+    // Map Java hash algorithm to OpenHiTLS MD ID
+    int mdId = getMdId(hashAlg);
+    ret = CRYPT_EAL_PkeyVerify(pkey, mdId, (uint8_t *)inputData, inputLen, (uint8_t *)signData, signLen);
 
     (*env)->ReleaseByteArrayElements(env, signature, signData, JNI_ABORT);
     (*env)->ReleaseByteArrayElements(env, data, inputData, JNI_ABORT);

@@ -1,39 +1,43 @@
 package org.openhitls.crypto.jce.key;
 
-import java.security.PrivateKey;
 import java.security.spec.*;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-public class SM2PrivateKey implements PrivateKey {
+public class ECPrivateKey implements java.security.interfaces.ECPrivateKey {
     private static final long serialVersionUID = 1L;
     private final byte[] keyBytes;
     private final ECParameterSpec params;
+    private BigInteger s;  // Cache the private value to avoid repeated computation
 
-    public SM2PrivateKey(byte[] keyBytes) {
+    public ECPrivateKey(byte[] keyBytes) {
         this.keyBytes = keyBytes.clone();
         this.params = null;
+        this.s = null;
     }
 
-    public SM2PrivateKey(byte[] keyBytes, ECParameterSpec params) {
+    public ECPrivateKey(byte[] keyBytes, ECParameterSpec params) {
         this.keyBytes = keyBytes.clone();
         this.params = params;
+        this.s = null;
     }
 
-    public SM2PrivateKey(BigInteger s, ECParameterSpec params) {
-        // Convert private key to 32 bytes, big-endian
-        byte[] encoded = new byte[32];
+    public ECPrivateKey(BigInteger s, ECParameterSpec params) {
+        this.s = s;
+        // Get field size in bytes
+        int fieldSize = (params.getCurve().getField().getFieldSize() + 7) / 8;
+        byte[] encoded = new byte[fieldSize];
         byte[] sBytes = s.toByteArray();
-        if (sBytes.length > 32) {
+        if (sBytes.length > fieldSize) {
             // Remove leading zeros if present
-            sBytes = Arrays.copyOfRange(sBytes, sBytes.length - 32, sBytes.length);
-        } else if (sBytes.length < 32) {
+            sBytes = Arrays.copyOfRange(sBytes, sBytes.length - fieldSize, sBytes.length);
+        } else if (sBytes.length < fieldSize) {
             // Pad with zeros if needed
-            byte[] padded = new byte[32];
-            System.arraycopy(sBytes, 0, padded, 32 - sBytes.length, sBytes.length);
+            byte[] padded = new byte[fieldSize];
+            System.arraycopy(sBytes, 0, padded, fieldSize - sBytes.length, sBytes.length);
             sBytes = padded;
         }
-        System.arraycopy(sBytes, 0, encoded, 0, 32);
+        System.arraycopy(sBytes, 0, encoded, 0, fieldSize);
         
         this.keyBytes = encoded;
         this.params = params;
@@ -45,7 +49,7 @@ public class SM2PrivateKey implements PrivateKey {
 
     @Override
     public String getAlgorithm() {
-        return "SM2";
+        return "EC";
     }
 
     @Override
@@ -62,12 +66,20 @@ public class SM2PrivateKey implements PrivateKey {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SM2PrivateKey that = (SM2PrivateKey) o;
+        ECPrivateKey that = (ECPrivateKey) o;
         return Arrays.equals(keyBytes, that.keyBytes);
     }
 
     @Override
     public int hashCode() {
         return Arrays.hashCode(keyBytes);
+    }
+
+    @Override
+    public BigInteger getS() {
+        if (s == null && keyBytes != null) {
+            s = new BigInteger(1, keyBytes);
+        }
+        return s;
     }
 }

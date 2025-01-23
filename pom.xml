@@ -71,9 +71,9 @@
                                     <arg value="-I${openhitls.root}/include"/>
                                     <arg value="-I${openhitls.root}/crypto/include"/>
                                     <arg value="-I${openhitls.root}/build/include"/>
-                                    <arg value="${basedir}/src/main/native/sm2_jni.c"/>
+                                    <arg value="${basedir}/src/main/native/ecdsa_jni.c"/>
                                     <arg value="-o"/>
-                                    <arg value="${project.build.directory}/native/sm2_jni.o"/>
+                                    <arg value="${project.build.directory}/native/ecdsa_jni.o"/>
                                 </exec>
                                 <exec executable="gcc" failonerror="true">
                                     <arg value="-c"/>
@@ -140,7 +140,7 @@
                                     <arg value="-shared"/>
                                     <arg value="-o"/>
                                     <arg value="${project.build.directory}/native/libhitls_crypto_jni.so"/>
-                                    <arg value="${project.build.directory}/native/sm2_jni.o"/>
+                                    <arg value="${project.build.directory}/native/ecdsa_jni.o"/>
                                     <arg value="${project.build.directory}/native/sm4_jni.o"/>
                                     <arg value="${project.build.directory}/native/hmac_jni.o"/>
                                     <arg value="${project.build.directory}/native/hash_jni.o"/>

@@ -7,12 +7,14 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.Cipher;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
-import org.openhitls.crypto.core.asymmetric.SM2;
-import org.openhitls.crypto.jce.key.SM2PublicKey;
-import org.openhitls.crypto.jce.key.SM2PrivateKey;
+import java.security.spec.ECParameterSpec;
+import org.openhitls.crypto.core.asymmetric.ECDSA;
+import org.openhitls.crypto.jce.key.ECPublicKey;
+import org.openhitls.crypto.jce.key.ECPrivateKey;
+import org.openhitls.crypto.jce.spec.ECNamedCurveSpec;
 
 public class SM2Cipher extends CipherSpi {
-    private SM2 sm2;
+    private ECDSA ECDSA;
     private int opmode;
 
     @Override
@@ -51,33 +53,47 @@ public class SM2Cipher extends CipherSpi {
 
     @Override
     protected void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        engineInit(opmode, key, (AlgorithmParameterSpec)null, random);
+        try {
+            this.opmode = opmode;  // Store the operation mode first
+            if (opmode == Cipher.ENCRYPT_MODE) {
+                if (!(key instanceof ECPublicKey)) {
+                    throw new InvalidKeyException("Public key required for encryption");
+                }
+                ECParameterSpec params = ((ECPublicKey)key).getParams();
+                if (!(params instanceof ECNamedCurveSpec)) {
+                    throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
+                }
+                String curveName = ((ECNamedCurveSpec)params).getName();
+                ECDSA = new ECDSA(curveName, ((ECPublicKey)key).getEncoded(), null);
+            } else if (opmode == Cipher.DECRYPT_MODE) {
+                if (!(key instanceof ECPrivateKey)) {
+                    throw new InvalidKeyException("Private key required for decryption");
+                }
+                ECParameterSpec params = ((ECPrivateKey)key).getParams();
+                if (!(params instanceof ECNamedCurveSpec)) {
+                    throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
+                }
+                String curveName = ((ECNamedCurveSpec)params).getName();
+                ECDSA = new ECDSA(curveName, null, ((ECPrivateKey)key).getEncoded());
+            } else {
+                throw new InvalidKeyException("Unsupported operation mode");
+            }
+        } catch (Exception e) {
+            throw new InvalidKeyException("Failed to initialize SM2", e);
+        }
     }
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
-            throws InvalidKeyException {
-        this.opmode = opmode;
-        
-        if (opmode == Cipher.ENCRYPT_MODE) {
-            if (!(key instanceof SM2PublicKey)) {
-                throw new InvalidKeyException("Public key required for encryption");
-            }
-            sm2 = new SM2(((SM2PublicKey)key).getEncoded(), null);
-        } else if (opmode == Cipher.DECRYPT_MODE) {
-            if (!(key instanceof SM2PrivateKey)) {
-                throw new InvalidKeyException("Private key required for decryption");
-            }
-            sm2 = new SM2(null, ((SM2PrivateKey)key).getEncoded());
-        } else {
-            throw new InvalidKeyException("Unsupported operation mode");
-        }
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        // Ignore params as SM2 doesn't use them
+        engineInit(opmode, key, random);
     }
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
             throws InvalidKeyException {
-        engineInit(opmode, key, (AlgorithmParameterSpec)null, random);
+        engineInit(opmode, key, random);
     }
 
     @Override
@@ -98,9 +114,9 @@ public class SM2Cipher extends CipherSpi {
 
         try {
             if (opmode == Cipher.ENCRYPT_MODE) {
-                return sm2.encryptData(data);
+                return ECDSA.encryptData(data);
             } else {
-                return sm2.decryptData(data);
+                return ECDSA.decryptData(data);
             }
         } catch (Exception e) {
             throw new BadPaddingException("Operation failed: " + e.getMessage());

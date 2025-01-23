@@ -2,13 +2,14 @@ package org.openhitls.crypto.core.asymmetric;
 
 import java.lang.ref.Cleaner;
 
-public class SM2 {
+public class ECDSA {
     private static final Cleaner CLEANER = Cleaner.create();
     private final long nativeRef;
     private byte[] publicKey;
     private byte[] privateKey;
     private byte[] userId;
     private final String curveName;
+    private final int hashAlgorithm;
     private final CleanerRunnable cleanerRunnable;
 
     private static class CleanerRunnable implements Runnable {
@@ -26,20 +27,31 @@ public class SM2 {
         }
     }
 
-    public SM2() {
-        this("sm2p256v1");
+    public ECDSA(String curveName) {
+        this.curveName = curveName.toLowerCase();
+        this.hashAlgorithm = 0;  // Default
+        this.nativeRef = createNativeContext(this.curveName);
+        this.cleanerRunnable = new CleanerRunnable(nativeRef);
+        CLEANER.register(this, cleanerRunnable);
+        generateKeyPair(nativeRef);
     }
 
-    public SM2(String curveName) {
+    public ECDSA(String curveName, int hashAlgorithm) {
         this.curveName = curveName;
+        this.hashAlgorithm = hashAlgorithm;
         this.nativeRef = createNativeContext(curveName);
         this.cleanerRunnable = new CleanerRunnable(nativeRef);
         CLEANER.register(this, cleanerRunnable);
         generateKeyPair(nativeRef);
     }
 
-    public SM2(String curveName, byte[] publicKey, byte[] privateKey) {
+    public ECDSA(String curveName, byte[] publicKey, byte[] privateKey) {
+        this(curveName, 0, publicKey, privateKey);
+    }
+
+    public ECDSA(String curveName, int hashAlgorithm, byte[] publicKey, byte[] privateKey) {
         this.curveName = curveName;
+        this.hashAlgorithm = hashAlgorithm;
         this.nativeRef = createNativeContext(curveName);
         this.cleanerRunnable = new CleanerRunnable(nativeRef);
         CLEANER.register(this, cleanerRunnable);
@@ -51,8 +63,8 @@ public class SM2 {
     private native void generateKeyPair(long nativeRef);
     private native byte[] encrypt(long nativeRef, byte[] data);
     private native byte[] decrypt(long nativeRef, byte[] encryptedData);
-    private native byte[] sign(long nativeRef, byte[] data);
-    private native boolean verify(long nativeRef, byte[] data, byte[] signature);
+    private native byte[] sign(long nativeRef, byte[] data, int hashAlg);
+    private native boolean verify(long nativeRef, byte[] data, byte[] signature, int hashAlg);
 
     void setKeys(byte[] publicKey, byte[] privateKey) {
         this.publicKey = publicKey;
@@ -85,7 +97,7 @@ public class SM2 {
     }
 
     /**
-     * Encrypts data using SM2 public key encryption
+     * Encrypts data using ECDSA public key encryption
      * @param data The data to encrypt
      * @return The encrypted data
      * @throws RuntimeException if encryption fails
@@ -129,7 +141,7 @@ public class SM2 {
         if (privateKey == null) {
             throw new IllegalStateException("Private key not initialized");
         }
-        return sign(nativeRef, data);
+        return sign(nativeRef, data, hashAlgorithm);
     }
 
     /**
@@ -146,6 +158,10 @@ public class SM2 {
         if (publicKey == null) {
             throw new IllegalStateException("Public key not initialized");
         }
-        return verify(nativeRef, data, signature);
+        return verify(nativeRef, data, signature, hashAlgorithm);
+    }
+
+    public String getCurveName() {
+        return curveName;
     }
 }

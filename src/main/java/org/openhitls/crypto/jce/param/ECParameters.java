@@ -8,6 +8,7 @@ import java.security.spec.InvalidParameterSpecException;
 import java.security.AlgorithmParametersSpi;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collections;
 
 import org.openhitls.crypto.jce.spec.ECNamedCurveSpec;
 
@@ -23,7 +24,16 @@ public class ECParameters extends AlgorithmParametersSpi {
 
     static {
         // Initialize supported curves
-        namedCurves.put("sm2p256v1", ECNamedCurveSpec.sm2p256v1());
+        namedCurves.put("sm2p256v1", ECNamedCurveSpec.getSM2Curve());
+        namedCurves.put("secp256r1", ECNamedCurveSpec.getP256Curve());
+        namedCurves.put("secp384r1", ECNamedCurveSpec.getP384Curve());
+        namedCurves.put("secp521r1", ECNamedCurveSpec.getP521Curve());
+        
+        // Add aliases for NIST curves
+        namedCurves.put("prime256v1", ECNamedCurveSpec.getP256Curve());  // Alias for secp256r1
+        namedCurves.put("p-256", ECNamedCurveSpec.getP256Curve());       // Another common alias
+        namedCurves.put("p-384", ECNamedCurveSpec.getP384Curve());       // Alias for secp384r1
+        namedCurves.put("p-521", ECNamedCurveSpec.getP521Curve());       // Alias for secp521r1
     }
 
     protected void engineInit(AlgorithmParameterSpec paramSpec)
@@ -86,5 +96,10 @@ public class ECParameters extends AlgorithmParametersSpi {
 
     protected String engineToString() {
         return name != null ? name : "Unnamed EC Parameters";
+    }
+
+    // Make namedCurves accessible
+    public static Map<String, ECParameterSpec> getNamedCurves() {
+        return Collections.unmodifiableMap(namedCurves);
     }
 }

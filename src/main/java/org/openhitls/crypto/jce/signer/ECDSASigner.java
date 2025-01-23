@@ -2,42 +2,45 @@ package org.openhitls.crypto.jce.signer;
 
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
-import org.openhitls.crypto.core.asymmetric.SM2;
-import org.openhitls.crypto.jce.key.SM2PublicKey;
-import org.openhitls.crypto.jce.key.SM2PrivateKey;
+import java.security.spec.ECParameterSpec;
+import org.openhitls.crypto.core.asymmetric.ECDSA;
+import org.openhitls.crypto.jce.key.ECPublicKey;
+import org.openhitls.crypto.jce.key.ECPrivateKey;
 import org.openhitls.crypto.jce.spec.SM2ParameterSpec;
+import org.openhitls.crypto.jce.spec.ECNamedCurveSpec;
+import org.openhitls.crypto.core.CryptoConstants;
 
-public class SM2Signature extends SignatureSpi {
-    private SM2 sm2;
+public class ECDSASigner extends SignatureSpi {
+    private ECDSA ECDSA;
     private byte[] buffer;
     private boolean forSigning;
     private byte[] userId;
-    private final String algorithm;
+    private final int algorithm;
 
-    public SM2Signature(String algorithm) {
-        this.algorithm = algorithm;
+    public ECDSASigner(String algorithmName) {
+        this.algorithm = getHashAlgorithm(algorithmName);
     }
 
     // Inner classes for different signature algorithms
-    public static final class SHA256withECDSA extends SM2Signature {
+    public static final class SHA256withECDSA extends ECDSASigner {
         public SHA256withECDSA() {
             super("SHA256");
         }
     }
 
-    public static final class SHA384withECDSA extends SM2Signature {
+    public static final class SHA384withECDSA extends ECDSASigner {
         public SHA384withECDSA() {
             super("SHA384");
         }
     }
 
-    public static final class SHA512withECDSA extends SM2Signature {
+    public static final class SHA512withECDSA extends ECDSASigner {
         public SHA512withECDSA() {
             super("SHA512");
         }
     }
 
-    public static final class SM3withSM2 extends SM2Signature {
+    public static final class SM3withSM2 extends ECDSASigner {
         public SM3withSM2() {
             super("SM3");
         }
@@ -45,16 +48,21 @@ public class SM2Signature extends SignatureSpi {
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-        if (!(publicKey instanceof SM2PublicKey)) {
-            throw new InvalidKeyException("Key must be an instance of SM2PublicKey");
+        if (!(publicKey instanceof ECPublicKey)) {
+            throw new InvalidKeyException("Key must be an instance of ECDSAPublicKey");
         }
         try {
-            sm2 = new SM2(((SM2PublicKey)publicKey).getEncoded(), null);
+            ECParameterSpec params = ((ECPublicKey)publicKey).getParams();
+            if (!(params instanceof ECNamedCurveSpec)) {
+                throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
+            }
+            String curveName = ((ECNamedCurveSpec)params).getName();
+            ECDSA = new ECDSA(curveName, algorithm, ((ECPublicKey)publicKey).getEncoded(), null);
             if (userId != null) {
-                sm2.setUserId(userId);
+                ECDSA.setUserId(userId);
             }
         } catch (Exception e) {
-            throw new InvalidKeyException("Failed to initialize SM2", e);
+            throw new InvalidKeyException("Failed to initialize ECDSA", e);
         }
         buffer = null;
         forSigning = false;
@@ -68,16 +76,21 @@ public class SM2Signature extends SignatureSpi {
     @Override
     protected void engineInitSign(PrivateKey privateKey, SecureRandom random) 
             throws InvalidKeyException {
-        if (!(privateKey instanceof SM2PrivateKey)) {
-            throw new InvalidKeyException("Key must be an instance of SM2PrivateKey");
+        if (!(privateKey instanceof ECPrivateKey)) {
+            throw new InvalidKeyException("Key must be an instance of ECDSAPrivateKey");
         }
         try {
-            sm2 = new SM2(null, ((SM2PrivateKey)privateKey).getEncoded());
+            ECParameterSpec params = ((ECPrivateKey)privateKey).getParams();
+            if (!(params instanceof ECNamedCurveSpec)) {
+                throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
+            }
+            String curveName = ((ECNamedCurveSpec)params).getName();
+            ECDSA = new ECDSA(curveName, algorithm, null, ((ECPrivateKey)privateKey).getEncoded());
             if (userId != null) {
-                sm2.setUserId(userId);
+                ECDSA.setUserId(userId);
             }
         } catch (Exception e) {
-            throw new InvalidKeyException("Failed to initialize SM2", e);
+            throw new InvalidKeyException("Failed to initialize ECDSA", e);
         }
         buffer = null;
         forSigning = true;
@@ -110,7 +123,7 @@ public class SM2Signature extends SignatureSpi {
             throw new SignatureException("No data to sign");
         }
         try {
-            return sm2.signData(buffer);
+            return ECDSA.signData(buffer);
         } catch (Exception e) {
             throw new SignatureException("Signing failed", e);
         }
@@ -125,7 +138,7 @@ public class SM2Signature extends SignatureSpi {
             throw new SignatureException("No data to verify");
         }
         try {
-            return sm2.verifySignature(buffer, sigBytes);
+            return ECDSA.verifySignature(buffer, sigBytes);
         } catch (Exception e) {
             throw new SignatureException("Verification failed", e);
         }
@@ -153,13 +166,28 @@ public class SM2Signature extends SignatureSpi {
             throw new InvalidAlgorithmParameterException("Only SM2ParameterSpec is supported");
         }
         userId = ((SM2ParameterSpec)params).getId().clone();
-        if (sm2 != null) {
-            sm2.setUserId(userId);
+        if (ECDSA != null) {
+            ECDSA.setUserId(userId);
         }
     }
 
     @Override
     protected AlgorithmParameters engineGetParameters() {
         return null;
+    }
+
+    private int getHashAlgorithm(String algorithmName) {
+        switch (algorithmName) {
+            case "SM3":
+                return CryptoConstants.HASH_ALG_SM3;
+            case "SHA256":
+                return CryptoConstants.HASH_ALG_SHA256;
+            case "SHA384":
+                return CryptoConstants.HASH_ALG_SHA384;
+            case "SHA512":
+                return CryptoConstants.HASH_ALG_SHA512;
+            default:
+                throw new IllegalArgumentException("Unsupported hash algorithm: " + algorithmName);
+        }
     }
 }

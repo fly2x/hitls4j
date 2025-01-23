@@ -2,11 +2,11 @@ package org.openhitls.crypto.jce.provider;
 
 import org.openhitls.crypto.jce.cipher.SM4Cipher;
 import java.security.Provider;
-import org.openhitls.crypto.jce.key.generator.SM2KeyPairGenerator;
-import org.openhitls.crypto.jce.key.factory.SM2KeyFactory;
+import org.openhitls.crypto.jce.key.generator.ECKeyPairGenerator;
+import org.openhitls.crypto.jce.key.factory.ECKeyFactory;
 import org.openhitls.crypto.jce.cipher.SM2Cipher;
 import org.openhitls.crypto.jce.param.ECParameters;
-import org.openhitls.crypto.jce.signer.SM2Signature;
+import org.openhitls.crypto.jce.signer.ECDSASigner;
 import org.openhitls.crypto.jce.key.generator.SM4KeyGenerator;
 
 public final class HiTls4jProvider extends Provider {
@@ -20,19 +20,6 @@ public final class HiTls4jProvider extends Provider {
         }
     }
 
-    public static class SM4CipherOidImpl extends SM4Cipher {
-        public SM4CipherOidImpl(String transformation) throws Exception {
-            super();
-            String[] parts = transformation.split("/");
-            if (parts.length > 1) {
-                engineSetMode(parts[1]);
-            }
-            if (parts.length > 2) {
-                engineSetPadding(parts[2]);
-            }
-        }
-    }
-
     public HiTls4jProvider() {
         super(PROVIDER_NAME, VERSION, INFO);
         
@@ -42,18 +29,12 @@ public final class HiTls4jProvider extends Provider {
         put("Cipher.SM4 SupportedModes", "ECB|CBC|CTR|GCM|CFB|OFB|XTS");
         put("Cipher.SM4 SupportedPaddings", "NOPADDING|PKCS5PADDING|PKCS7PADDING|ZEROSPADDING|ISO7816PADDING|X923PADDING");
 
-        // Register SM2 services
-        put("KeyPairGenerator.SM2", SM2KeyPairGenerator.class.getName());
-        put("KeyFactory.SM2", SM2KeyFactory.class.getName());
-        put("Cipher.SM2", SM2Cipher.class.getName());
-        put("Signature.SM2", SM2Signature.class.getName());
 
-        // Register SM2 as EC
-        put("KeyPairGenerator.EC", SM2KeyPairGenerator.class.getName());
-        put("KeyFactory.EC", SM2KeyFactory.class.getName());
-        put("Cipher.EC", SM2Cipher.class.getName());
-        put("Signature.EC", SM2Signature.class.getName());
-        put("Signature.SM3withSM2", SM2Signature.class.getName());
+
+        put("Cipher.SM2", SM2Cipher.class.getName());
+        put("KeyPairGenerator.EC", ECKeyPairGenerator.class.getName());
+        put("KeyFactory.EC", ECKeyFactory.class.getName());
+        put("Signature.EC", ECDSASigner.class.getName());
         put("AlgorithmParameters.EC", ECParameters.class.getName());
         put("AlgorithmParameterGenerator.EC", "sun.security.ec.ECParameterGenerator");
         put("KeyAgreement.EC", "sun.security.ec.ECDHKeyAgreement");
@@ -136,10 +117,10 @@ public final class HiTls4jProvider extends Provider {
         put("KeyGenerator.SM4", SM4KeyGenerator.class.getName());
 
         // Register ECDSA signature algorithms
-        put("Signature.SHA256withECDSA", "org.openhitls.crypto.jce.signer.SM2Signature$SHA256withECDSA");
-        put("Signature.SHA384withECDSA", "org.openhitls.crypto.jce.signer.SM2Signature$SHA384withECDSA");
-        put("Signature.SHA512withECDSA", "org.openhitls.crypto.jce.signer.SM2Signature$SHA512withECDSA");
-        put("Signature.SM3withSM2", "org.openhitls.crypto.jce.signer.SM2Signature$SM3withSM2");
+        put("Signature.SHA256withECDSA", "org.openhitls.crypto.jce.signer.ECDSASigner$SHA256withECDSA");
+        put("Signature.SHA384withECDSA", "org.openhitls.crypto.jce.signer.ECDSASigner$SHA384withECDSA");
+        put("Signature.SHA512withECDSA", "org.openhitls.crypto.jce.signer.ECDSASigner$SHA512withECDSA");
+        put("Signature.SM3withSM2", "org.openhitls.crypto.jce.signer.ECDSASigner$SM3withSM2");
 
         // Register supported curves
         put("Alg.Alias.Curve.P-256", "secp256r1");
