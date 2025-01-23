@@ -5,6 +5,7 @@ import java.security.Provider;
 import org.openhitls.crypto.jce.key.generator.SM2KeyPairGenerator;
 import org.openhitls.crypto.jce.key.factory.SM2KeyFactory;
 import org.openhitls.crypto.jce.cipher.SM2Cipher;
+import org.openhitls.crypto.jce.param.ECParameters;
 import org.openhitls.crypto.jce.signer.SM2Signature;
 import org.openhitls.crypto.jce.key.generator.SM4KeyGenerator;
 
@@ -133,5 +134,17 @@ public final class HiTls4jProvider extends Provider {
 
         // Register SM4 key generator
         put("KeyGenerator.SM4", SM4KeyGenerator.class.getName());
+
+        // Register ECDSA signature algorithms
+        put("Signature.SHA256withECDSA", "org.openhitls.crypto.jce.signer.SM2Signature$SHA256withECDSA");
+        put("Signature.SHA384withECDSA", "org.openhitls.crypto.jce.signer.SM2Signature$SHA384withECDSA");
+        put("Signature.SHA512withECDSA", "org.openhitls.crypto.jce.signer.SM2Signature$SHA512withECDSA");
+        put("Signature.SM3withSM2", "org.openhitls.crypto.jce.signer.SM2Signature$SM3withSM2");
+
+        // Register supported curves
+        put("Alg.Alias.Curve.P-256", "secp256r1");
+        put("Alg.Alias.Curve.P-384", "secp384r1");
+        put("Alg.Alias.Curve.P-521", "secp521r1");
+        put("Alg.Alias.Curve.SM2", "sm2p256v1");
     }
 }

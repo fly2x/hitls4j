@@ -10,7 +10,7 @@ import java.security.spec.*;
 import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 import org.openhitls.crypto.jce.spec.SM2ParameterSpec;
 
-public class SM2JceTest {
+public class SM2Test {
     private static final Provider provider = new HiTls4jProvider();
 
     @Before

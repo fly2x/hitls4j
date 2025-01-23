@@ -14,7 +14,7 @@ import javax.crypto.spec.IvParameterSpec;
 import java.security.Security;
 import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 
-public class SM4JceTest extends org.openhitls.crypto.BaseTest {
+public class SM4Test extends org.openhitls.crypto.BaseTest {
     private static final byte[] TEST_KEY = new byte[] {
         (byte)0x01, (byte)0x02, (byte)0x03, (byte)0x04, (byte)0x05, (byte)0x06, (byte)0x07, (byte)0x08,
         (byte)0x09, (byte)0x0a, (byte)0x0b, (byte)0x0c, (byte)0x0d, (byte)0x0e, (byte)0x0f, (byte)0x10

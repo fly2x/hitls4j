@@ -1,6 +1,5 @@
 package org.openhitls.crypto.jce.cipher;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openhitls.crypto.BaseTest;
 import org.openhitls.crypto.exception.CryptoException;
@@ -11,11 +10,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import java.security.SecureRandom;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -24,7 +19,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class HiTlsAESTest extends BaseTest {
+public class AESTest extends BaseTest {
     private static final String[] MODES = {"ECB", "CBC", "CTR", "GCM", "CFB", "OFB"};
     private static final int[] KEY_SIZES = {128, 192, 256};
 

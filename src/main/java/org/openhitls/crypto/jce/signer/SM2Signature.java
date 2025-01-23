@@ -12,6 +12,36 @@ public class SM2Signature extends SignatureSpi {
     private byte[] buffer;
     private boolean forSigning;
     private byte[] userId;
+    private final String algorithm;
+
+    public SM2Signature(String algorithm) {
+        this.algorithm = algorithm;
+    }
+
+    // Inner classes for different signature algorithms
+    public static final class SHA256withECDSA extends SM2Signature {
+        public SHA256withECDSA() {
+            super("SHA256");
+        }
+    }
+
+    public static final class SHA384withECDSA extends SM2Signature {
+        public SHA384withECDSA() {
+            super("SHA384");
+        }
+    }
+
+    public static final class SHA512withECDSA extends SM2Signature {
+        public SHA512withECDSA() {
+            super("SHA512");
+        }
+    }
+
+    public static final class SM3withSM2 extends SM2Signature {
+        public SM3withSM2() {
+            super("SM3");
+        }
+    }
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {

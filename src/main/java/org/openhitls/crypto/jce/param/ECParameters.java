@@ -1,4 +1,4 @@
-package org.openhitls.crypto.jce.provider;
+package org.openhitls.crypto.jce.param;
 
 import java.io.IOException;
 import java.security.spec.AlgorithmParameterSpec;

@@ -8,6 +8,7 @@ public class SM2 {
     private byte[] publicKey;
     private byte[] privateKey;
     private byte[] userId;
+    private final String curveName;
     private final CleanerRunnable cleanerRunnable;
 
     private static class CleanerRunnable implements Runnable {
@@ -26,20 +27,26 @@ public class SM2 {
     }
 
     public SM2() {
-        this.nativeRef = createNativeContext();
+        this("sm2p256v1");
+    }
+
+    public SM2(String curveName) {
+        this.curveName = curveName;
+        this.nativeRef = createNativeContext(curveName);
         this.cleanerRunnable = new CleanerRunnable(nativeRef);
         CLEANER.register(this, cleanerRunnable);
         generateKeyPair(nativeRef);
     }
 
-    public SM2(byte[] publicKey, byte[] privateKey) {
-        this.nativeRef = createNativeContext();
+    public SM2(String curveName, byte[] publicKey, byte[] privateKey) {
+        this.curveName = curveName;
+        this.nativeRef = createNativeContext(curveName);
         this.cleanerRunnable = new CleanerRunnable(nativeRef);
         CLEANER.register(this, cleanerRunnable);
         setKeys(publicKey, privateKey);
     }
 
-    private static native long createNativeContext();
+    private static native long createNativeContext(String curveName);
     private static native void freeNativeRef(long nativeRef);
     private native void generateKeyPair(long nativeRef);
     private native byte[] encrypt(long nativeRef, byte[] data);

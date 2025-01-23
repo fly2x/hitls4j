@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 
-public class HiTlsHMACTest extends BaseTest {
+public class HMACTest extends BaseTest {
     private static final String[] HMAC_ALGORITHMS = {
         "HMACSHA1", "HMACSHA224", "HMACSHA256", "HMACSHA384", "HMACSHA512", 
         "HMACSHA3-224", "HMACSHA3-256", "HMACSHA3-384", "HMACSHA3-512", "HMACSM3"
