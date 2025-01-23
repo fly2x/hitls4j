@@ -35,8 +35,9 @@ public final class HiTls4jProvider extends Provider {
     public HiTls4jProvider() {
         super(PROVIDER_NAME, VERSION, INFO);
         
-        // Register SM4 Cipher
+        // Register symmetric ciphers
         put("Cipher.SM4", SM4CipherImpl.class.getName());
+        put("Cipher.AES", "org.openhitls.crypto.jce.cipher.HiTlsAES");
         put("Cipher.SM4 SupportedModes", "ECB|CBC|CTR|GCM|CFB|OFB|XTS");
         put("Cipher.SM4 SupportedPaddings", "NOPADDING|PKCS5PADDING|PKCS7PADDING|ZEROSPADDING|ISO7816PADDING|X923PADDING");
 

@@ -120,6 +120,21 @@
                                     <arg value="-o"/>
                                     <arg value="${project.build.directory}/native/hash_jni.o"/>
                                 </exec>
+                                <exec executable="gcc" failonerror="true">
+                                    <arg value="-c"/>
+                                    <arg value="-fPIC"/>
+                                    <arg value="-Wall"/>
+                                    <arg value="-I${env.JAVA_HOME}/include"/>
+                                    <arg value="-I${env.JAVA_HOME}/include/linux"/>
+                                    <arg value="-I${basedir}/src/main/native"/>
+                                    <arg value="-I${basedir}/src/main/native/include"/>
+                                    <arg value="-I${openhitls.root}/include"/>
+                                    <arg value="-I${openhitls.root}/crypto/include"/>
+                                    <arg value="-I${openhitls.root}/build/include"/>
+                                    <arg value="${basedir}/src/main/native/aes_jni.c"/>
+                                    <arg value="-o"/>
+                                    <arg value="${project.build.directory}/native/aes_jni.o"/>
+                                </exec>
                                 <!-- Link directly to shared library -->
                                 <exec executable="gcc" failonerror="true">
                                     <arg value="-shared"/>
@@ -129,6 +144,7 @@
                                     <arg value="${project.build.directory}/native/sm4_jni.o"/>
                                     <arg value="${project.build.directory}/native/hmac_jni.o"/>
                                     <arg value="${project.build.directory}/native/hash_jni.o"/>
+                                    <arg value="${project.build.directory}/native/aes_jni.o"/>
                                     <arg value="-L${openhitls.root}/build"/>
                                     <arg value="-Wl,--whole-archive"/>
                                     <arg value="${openhitls.root}/build/libboundscheck.a"/>
