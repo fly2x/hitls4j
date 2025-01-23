@@ -18,11 +18,13 @@ import static org.junit.Assert.assertArrayEquals;
 
 public class HiTlsHMACTest extends BaseTest {
     private static final String[] HMAC_ALGORITHMS = {
-        "HMACSHA224", "HMACSHA256", "HMACSHA384", "HMACSHA512", "HMACSM3"
+        "HMACSHA1", "HMACSHA224", "HMACSHA256", "HMACSHA384", "HMACSHA512", 
+        "HMACSHA3-224", "HMACSHA3-256", "HMACSHA3-384", "HMACSHA3-512", "HMACSM3"
     };
 
     private static final int[] MAC_LENGTHS = {
-        28, 32, 48, 64, 32
+        20, 28, 32, 48, 64,  // SHA1, SHA224, SHA256, SHA384, SHA512
+        28, 32, 48, 64, 32   // SHA3-224, SHA3-256, SHA3-384, SHA3-512, SM3
     };
 
     @BeforeClass

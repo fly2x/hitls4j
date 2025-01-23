@@ -109,4 +109,34 @@ public class HiTlsHMAC extends MacSpi {
             super("HMACSM3", 32); // SM3 produces 32 bytes output
         }
     }
+
+    public static final class HMACSHA1 extends HiTlsHMAC {
+        public HMACSHA1() {
+            super("HMACSHA1", 20); // SHA-1 produces 20 bytes output
+        }
+    }
+
+    public static final class HMACSHA3_224 extends HiTlsHMAC {
+        public HMACSHA3_224() {
+            super("HMACSHA3-224", 28); // SHA3-224 produces 28 bytes output
+        }
+    }
+
+    public static final class HMACSHA3_256 extends HiTlsHMAC {
+        public HMACSHA3_256() {
+            super("HMACSHA3-256", 32); // SHA3-256 produces 32 bytes output
+        }
+    }
+
+    public static final class HMACSHA3_384 extends HiTlsHMAC {
+        public HMACSHA3_384() {
+            super("HMACSHA3-384", 48); // SHA3-384 produces 48 bytes output
+        }
+    }
+
+    public static final class HMACSHA3_512 extends HiTlsHMAC {
+        public HMACSHA3_512() {
+            super("HMACSHA3-512", 64); // SHA3-512 produces 64 bytes output
+        }
+    }
 }

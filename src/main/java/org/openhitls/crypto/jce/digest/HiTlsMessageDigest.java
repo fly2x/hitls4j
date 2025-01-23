@@ -71,4 +71,34 @@ public class HiTlsMessageDigest extends MessageDigestSpi {
             super("SM3", 32);
         }
     }
+
+    public static final class SHA1 extends HiTlsMessageDigest {
+        public SHA1() {
+            super("SHA-1", 20);
+        }
+    }
+
+    public static final class SHA3_224 extends HiTlsMessageDigest {
+        public SHA3_224() {
+            super("SHA3-224", 28);
+        }
+    }
+
+    public static final class SHA3_256 extends HiTlsMessageDigest {
+        public SHA3_256() {
+            super("SHA3-256", 32);
+        }
+    }
+
+    public static final class SHA3_384 extends HiTlsMessageDigest {
+        public SHA3_384() {
+            super("SHA3-384", 48);
+        }
+    }
+
+    public static final class SHA3_512 extends HiTlsMessageDigest {
+        public SHA3_512() {
+            super("SHA3-512", 64);
+        }
+    }
 }

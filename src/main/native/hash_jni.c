@@ -34,10 +34,15 @@ static void initBSL(void) {
 }
 
 static CRYPT_MD_AlgId getAlgorithmId(const char *algorithm) {
+    if (strcmp(algorithm, "SHA-1") == 0) return CRYPT_MD_SHA1;
     if (strcmp(algorithm, "SHA-224") == 0) return CRYPT_MD_SHA224;
     if (strcmp(algorithm, "SHA-256") == 0) return CRYPT_MD_SHA256;
     if (strcmp(algorithm, "SHA-384") == 0) return CRYPT_MD_SHA384;
     if (strcmp(algorithm, "SHA-512") == 0) return CRYPT_MD_SHA512;
+    if (strcmp(algorithm, "SHA3-224") == 0) return CRYPT_MD_SHA3_224;
+    if (strcmp(algorithm, "SHA3-256") == 0) return CRYPT_MD_SHA3_256;
+    if (strcmp(algorithm, "SHA3-384") == 0) return CRYPT_MD_SHA3_384;
+    if (strcmp(algorithm, "SHA3-512") == 0) return CRYPT_MD_SHA3_512;
     if (strcmp(algorithm, "SM3") == 0) return CRYPT_MD_SM3;
     return CRYPT_MD_MAX;
 }

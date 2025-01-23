@@ -74,6 +74,8 @@ public class MessageDigest {
 
     public int getDigestLength() {
         switch (algorithm.toUpperCase()) {
+            case "SHA-1":
+                return 20;
             case "SHA-224":
                 return 28;
             case "SHA-256":
@@ -81,6 +83,14 @@ public class MessageDigest {
             case "SHA-384":
                 return 48;
             case "SHA-512":
+                return 64;
+            case "SHA3-224":
+                return 28;
+            case "SHA3-256":
+                return 32;
+            case "SHA3-384":
+                return 48;
+            case "SHA3-512":
                 return 64;
             case "SM3":
                 return 32;

@@ -19,7 +19,6 @@ public class HiTlsAES extends CipherSpi {
     private AES aes;
     private boolean initialized = false;
     private int mode;
-    private int opmode;
     private byte[] iv;
 
     @Override
@@ -131,7 +130,6 @@ public class HiTlsAES extends CipherSpi {
                  mode == AES.MODE_CTR ? "CTR" : "GCM") + " mode");
         }
 
-        this.opmode = opmode;
         this.iv = ivBytes != null ? ivBytes.clone() : null;
 
         byte[] keyBytes = key.getEncoded();

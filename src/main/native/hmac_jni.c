@@ -33,7 +33,9 @@ static void initBSL() {
 
 // Get algorithm ID from algorithm name
 static int getAlgorithmId(const char *algorithm) {
-    if (strcmp(algorithm, "HMACSHA224") == 0) {
+    if (strcmp(algorithm, "HMACSHA1") == 0) {
+        return CRYPT_MAC_HMAC_SHA1;
+    } else if (strcmp(algorithm, "HMACSHA224") == 0) {
         return CRYPT_MAC_HMAC_SHA224;
     } else if (strcmp(algorithm, "HMACSHA256") == 0) {
         return CRYPT_MAC_HMAC_SHA256;
@@ -41,6 +43,14 @@ static int getAlgorithmId(const char *algorithm) {
         return CRYPT_MAC_HMAC_SHA384;
     } else if (strcmp(algorithm, "HMACSHA512") == 0) {
         return CRYPT_MAC_HMAC_SHA512;
+    } else if (strcmp(algorithm, "HMACSHA3-224") == 0) {
+        return CRYPT_MAC_HMAC_SHA3_224;
+    } else if (strcmp(algorithm, "HMACSHA3-256") == 0) {
+        return CRYPT_MAC_HMAC_SHA3_256;
+    } else if (strcmp(algorithm, "HMACSHA3-384") == 0) {
+        return CRYPT_MAC_HMAC_SHA3_384;
+    } else if (strcmp(algorithm, "HMACSHA3-512") == 0) {
+        return CRYPT_MAC_HMAC_SHA3_512;
     } else if (strcmp(algorithm, "HMACSM3") == 0) {
         return CRYPT_MAC_HMAC_SM3;
     }
