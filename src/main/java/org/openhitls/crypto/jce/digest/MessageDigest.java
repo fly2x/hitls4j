@@ -1,17 +1,17 @@
 package org.openhitls.crypto.jce.digest;
 
 import java.security.MessageDigestSpi;
-import org.openhitls.crypto.core.hash.MessageDigest;
+import org.openhitls.crypto.core.hash.MessageDigestImpl;
 
-public class HiTlsMessageDigest extends MessageDigestSpi {
-    private MessageDigest md;
+public class MessageDigest extends MessageDigestSpi {
+    private MessageDigestImpl md;
     private final String algorithm;
     private final int digestLength;
 
-    protected HiTlsMessageDigest(String algorithm, int digestLength) {
+    protected MessageDigest(String algorithm, int digestLength) {
         this.algorithm = algorithm;
         this.digestLength = digestLength;
-        this.md = new MessageDigest(algorithm);
+        this.md = new MessageDigestImpl(algorithm);
     }
 
     @Override
@@ -39,64 +39,64 @@ public class HiTlsMessageDigest extends MessageDigestSpi {
     @Override
     protected void engineReset() {
         // Create a new instance to reset
-        this.md = new MessageDigest(algorithm);
+        this.md = new MessageDigestImpl(algorithm);
     }
 
-    public static final class SHA224 extends HiTlsMessageDigest {
+    public static final class SHA224 extends MessageDigest {
         public SHA224() {
             super("SHA-224", 28);
         }
     }
 
-    public static final class SHA256 extends HiTlsMessageDigest {
+    public static final class SHA256 extends MessageDigest {
         public SHA256() {
             super("SHA-256", 32);
         }
     }
 
-    public static final class SHA384 extends HiTlsMessageDigest {
+    public static final class SHA384 extends MessageDigest {
         public SHA384() {
             super("SHA-384", 48);
         }
     }
 
-    public static final class SHA512 extends HiTlsMessageDigest {
+    public static final class SHA512 extends MessageDigest {
         public SHA512() {
             super("SHA-512", 64);
         }
     }
 
-    public static final class SM3 extends HiTlsMessageDigest {
+    public static final class SM3 extends MessageDigest {
         public SM3() {
             super("SM3", 32);
         }
     }
 
-    public static final class SHA1 extends HiTlsMessageDigest {
+    public static final class SHA1 extends MessageDigest {
         public SHA1() {
             super("SHA-1", 20);
         }
     }
 
-    public static final class SHA3_224 extends HiTlsMessageDigest {
+    public static final class SHA3_224 extends MessageDigest {
         public SHA3_224() {
             super("SHA3-224", 28);
         }
     }
 
-    public static final class SHA3_256 extends HiTlsMessageDigest {
+    public static final class SHA3_256 extends MessageDigest {
         public SHA3_256() {
             super("SHA3-256", 32);
         }
     }
 
-    public static final class SHA3_384 extends HiTlsMessageDigest {
+    public static final class SHA3_384 extends MessageDigest {
         public SHA3_384() {
             super("SHA3-384", 48);
         }
     }
 
-    public static final class SHA3_512 extends HiTlsMessageDigest {
+    public static final class SHA3_512 extends MessageDigest {
         public SHA3_512() {
             super("SHA3-512", 64);
         }

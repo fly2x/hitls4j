@@ -3,7 +3,7 @@ package org.openhitls.crypto.jce.signer;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
-import org.openhitls.crypto.core.asymmetric.ECDSA;
+import org.openhitls.crypto.core.asymmetric.ECDSAImpl;
 import org.openhitls.crypto.jce.key.ECPublicKey;
 import org.openhitls.crypto.jce.key.ECPrivateKey;
 import org.openhitls.crypto.jce.spec.SM2ParameterSpec;
@@ -11,7 +11,7 @@ import org.openhitls.crypto.jce.spec.ECNamedCurveSpec;
 import org.openhitls.crypto.core.CryptoConstants;
 
 public class ECDSASigner extends SignatureSpi {
-    private ECDSA ECDSA;
+    private ECDSAImpl ecdsaImpl;
     private byte[] buffer;
     private boolean forSigning;
     private byte[] userId;
@@ -57,9 +57,9 @@ public class ECDSASigner extends SignatureSpi {
                 throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
             }
             String curveName = ((ECNamedCurveSpec)params).getName();
-            ECDSA = new ECDSA(curveName, algorithm, ((ECPublicKey)publicKey).getEncoded(), null);
+            ecdsaImpl = new ECDSAImpl(curveName, algorithm, ((ECPublicKey)publicKey).getEncoded(), null);
             if (userId != null) {
-                ECDSA.setUserId(userId);
+                ecdsaImpl.setUserId(userId);
             }
         } catch (Exception e) {
             throw new InvalidKeyException("Failed to initialize ECDSA", e);
@@ -85,9 +85,9 @@ public class ECDSASigner extends SignatureSpi {
                 throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
             }
             String curveName = ((ECNamedCurveSpec)params).getName();
-            ECDSA = new ECDSA(curveName, algorithm, null, ((ECPrivateKey)privateKey).getEncoded());
+            ecdsaImpl = new ECDSAImpl(curveName, algorithm, null, ((ECPrivateKey)privateKey).getEncoded());
             if (userId != null) {
-                ECDSA.setUserId(userId);
+                ecdsaImpl.setUserId(userId);
             }
         } catch (Exception e) {
             throw new InvalidKeyException("Failed to initialize ECDSA", e);
@@ -123,7 +123,7 @@ public class ECDSASigner extends SignatureSpi {
             throw new SignatureException("No data to sign");
         }
         try {
-            return ECDSA.signData(buffer);
+            return ecdsaImpl.signData(buffer);
         } catch (Exception e) {
             throw new SignatureException("Signing failed", e);
         }
@@ -138,7 +138,7 @@ public class ECDSASigner extends SignatureSpi {
             throw new SignatureException("No data to verify");
         }
         try {
-            return ECDSA.verifySignature(buffer, sigBytes);
+            return ecdsaImpl.verifySignature(buffer, sigBytes);
         } catch (Exception e) {
             throw new SignatureException("Verification failed", e);
         }
@@ -166,8 +166,8 @@ public class ECDSASigner extends SignatureSpi {
             throw new InvalidAlgorithmParameterException("Only SM2ParameterSpec is supported");
         }
         userId = ((SM2ParameterSpec)params).getId().clone();
-        if (ECDSA != null) {
-            ECDSA.setUserId(userId);
+        if (ecdsaImpl != null) {
+            ecdsaImpl.setUserId(userId);
         }
     }
 

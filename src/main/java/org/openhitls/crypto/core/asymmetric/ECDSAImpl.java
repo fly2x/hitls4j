@@ -1,88 +1,58 @@
 package org.openhitls.crypto.core.asymmetric;
 
-import java.lang.ref.Cleaner;
+import org.openhitls.crypto.core.CryptoNative;
+import org.openhitls.crypto.core.NativeResource;
 
-public class ECDSA {
-    private static final Cleaner CLEANER = Cleaner.create();
-    private final long nativeRef;
+public class ECDSAImpl extends NativeResource {
     private byte[] publicKey;
     private byte[] privateKey;
     private byte[] userId;
     private final String curveName;
     private final int hashAlgorithm;
-    private final CleanerRunnable cleanerRunnable;
 
-    private static class CleanerRunnable implements Runnable {
-        private final long nativeRef;
-
-        CleanerRunnable(long nativeRef) {
-            this.nativeRef = nativeRef;
-        }
-
-        @Override
-        public void run() {
-            if (nativeRef != 0) {
-                freeNativeRef(nativeRef);
-            }
-        }
+    public ECDSAImpl(String curveName) {
+        this(curveName, 0);
     }
 
-    public ECDSA(String curveName) {
-        this.curveName = curveName.toLowerCase();
-        this.hashAlgorithm = 0;  // Default
-        this.nativeRef = createNativeContext(this.curveName);
-        this.cleanerRunnable = new CleanerRunnable(nativeRef);
-        CLEANER.register(this, cleanerRunnable);
-        generateKeyPair(nativeRef);
-    }
-
-    public ECDSA(String curveName, int hashAlgorithm) {
+    public ECDSAImpl(String curveName, int hashAlgorithm) {
+        super(initContext(curveName), CryptoNative::ecdsaFreeContext);
         this.curveName = curveName;
         this.hashAlgorithm = hashAlgorithm;
-        this.nativeRef = createNativeContext(curveName);
-        this.cleanerRunnable = new CleanerRunnable(nativeRef);
-        CLEANER.register(this, cleanerRunnable);
-        generateKeyPair(nativeRef);
+        byte[][] keyPair = CryptoNative.ecdsaGenerateKeyPair(nativeContext, this.curveName);
+        setKeys(keyPair[0], keyPair[1]);
     }
 
-    public ECDSA(String curveName, byte[] publicKey, byte[] privateKey) {
+    public ECDSAImpl(String curveName, byte[] publicKey, byte[] privateKey) {
         this(curveName, 0, publicKey, privateKey);
     }
 
-    public ECDSA(String curveName, int hashAlgorithm, byte[] publicKey, byte[] privateKey) {
+    public ECDSAImpl(String curveName, int hashAlgorithm, byte[] publicKey, byte[] privateKey) {
+        super(initContext(curveName), CryptoNative::ecdsaFreeContext);
         this.curveName = curveName;
         this.hashAlgorithm = hashAlgorithm;
-        this.nativeRef = createNativeContext(curveName);
-        this.cleanerRunnable = new CleanerRunnable(nativeRef);
-        CLEANER.register(this, cleanerRunnable);
         setKeys(publicKey, privateKey);
     }
 
-    private static native long createNativeContext(String curveName);
-    private static native void freeNativeRef(long nativeRef);
-    private native void generateKeyPair(long nativeRef);
-    private native byte[] encrypt(long nativeRef, byte[] data);
-    private native byte[] decrypt(long nativeRef, byte[] encryptedData);
-    private native byte[] sign(long nativeRef, byte[] data, int hashAlg);
-    private native boolean verify(long nativeRef, byte[] data, byte[] signature, int hashAlg);
+    private static long initContext(String curveName) {
+        if (curveName == null) {
+            throw new IllegalArgumentException("Curve name cannot be null");
+        }
+        return CryptoNative.ecdsaCreateContext(curveName);
+    }
 
     void setKeys(byte[] publicKey, byte[] privateKey) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
-        setNativeKeys(nativeRef, publicKey, privateKey);
+        CryptoNative.ecdsaSetKeys(nativeContext, curveName, publicKey, privateKey);
     }
-
-    private native void setNativeKeys(long nativeRef, byte[] publicKey, byte[] privateKey);
 
     public void setUserId(byte[] userId) {
         if (userId == null) {
             throw new IllegalArgumentException("UserId cannot be null");
         }
         this.userId = userId.clone();
-        setNativeUserId(nativeRef, userId);
+        CryptoNative.ecdsaSetUserId(nativeContext, userId);
     }
-
-    private native void setNativeUserId(long nativeRef, byte[] userId);
 
     public byte[] getUserId() {
         return userId != null ? userId.clone() : null;
@@ -109,7 +79,7 @@ public class ECDSA {
         if (publicKey == null) {
             throw new IllegalStateException("Public key not initialized");
         }
-        return encrypt(nativeRef, data);
+        return CryptoNative.ecdsaEncrypt(nativeContext, data);
     }
 
     /**
@@ -125,7 +95,7 @@ public class ECDSA {
         if (privateKey == null) {
             throw new IllegalStateException("Private key not initialized");
         }
-        return decrypt(nativeRef, encryptedData);
+        return CryptoNative.ecdsaDecrypt(nativeContext, encryptedData);
     }
 
     /**
@@ -141,7 +111,7 @@ public class ECDSA {
         if (privateKey == null) {
             throw new IllegalStateException("Private key not initialized");
         }
-        return sign(nativeRef, data, hashAlgorithm);
+        return CryptoNative.ecdsaSign(nativeContext, data, hashAlgorithm);
     }
 
     /**
@@ -158,7 +128,7 @@ public class ECDSA {
         if (publicKey == null) {
             throw new IllegalStateException("Public key not initialized");
         }
-        return verify(nativeRef, data, signature, hashAlgorithm);
+        return CryptoNative.ecdsaVerify(nativeContext, data, signature, hashAlgorithm);
     }
 
     public String getCurveName() {

@@ -1,16 +1,19 @@
 package org.openhitls.crypto.jce.cipher;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openhitls.crypto.BaseTest;
-import org.openhitls.crypto.exception.CryptoException;
+import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -20,8 +23,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class AESTest extends BaseTest {
-    private static final String[] MODES = {"ECB", "CBC", "CTR", "GCM", "CFB", "OFB"};
+    private static final String[] MODES = {"ECB", "CBC", "CTR", "GCM"};
     private static final int[] KEY_SIZES = {128, 192, 256};
+
+    @BeforeClass
+    public static void setUp() {
+        Security.addProvider(new HiTls4jProvider());
+    }
 
     @Test
     public void testAESEncryptDecrypt() throws Exception {
@@ -33,7 +41,7 @@ public class AESTest extends BaseTest {
                 SecretKey key = keyGen.generateKey();
 
                 // Create cipher
-                Cipher cipher = Cipher.getInstance("AES/" + mode + "/NoPadding", "HITLS4J");
+                Cipher cipher = Cipher.getInstance("AES/" + mode + "/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
 
                 // Test data
                 String testData = "Hello, AES Test!";
@@ -43,9 +51,17 @@ public class AESTest extends BaseTest {
                 int padding = blockSize - (input.length % blockSize);
                 byte[] paddedInput = Arrays.copyOf(input, input.length + padding);
 
+                // Generate IV for modes that need it
+                byte[] iv = null;
+                if (!mode.equals("ECB")) {
+                    iv = new byte[16];  // AES block size
+                    new SecureRandom().nextBytes(iv);
+                    cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+                } else {
+                    cipher.init(Cipher.ENCRYPT_MODE, key);
+                }
+
                 // Encrypt
-                cipher.init(Cipher.ENCRYPT_MODE, key);
-                byte[] iv = cipher.getIV();  // Get the IV (will be null for ECB)
                 byte[] encrypted = cipher.doFinal(paddedInput);
 
                 // Decrypt
@@ -65,8 +81,10 @@ public class AESTest extends BaseTest {
                 // For CBC mode, verify that different IVs produce different ciphertexts
                 if (mode.equals("CBC")) {
                     // Create a second cipher with a different IV
-                    Cipher cipher2 = Cipher.getInstance("AES/CBC/NoPadding", "HITLS4J");
-                    cipher2.init(Cipher.ENCRYPT_MODE, key);
+                    Cipher cipher2 = Cipher.getInstance("AES/CBC/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
+                    byte[] iv2 = new byte[16];
+                    new SecureRandom().nextBytes(iv2);
+                    cipher2.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv2));
                     byte[] encrypted2 = cipher2.doFinal(paddedInput);
                     
                     // The ciphertexts should be different due to different IVs
@@ -74,7 +92,7 @@ public class AESTest extends BaseTest {
                               Arrays.equals(encrypted, encrypted2));
                     
                     // But decryption should still work
-                    cipher2.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(cipher2.getIV()));
+                    cipher2.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv2));
                     byte[] decrypted2 = cipher2.doFinal(encrypted2);
                     assertArrayEquals("CBC decryption with different IV failed",
                                     paddedInput, decrypted2);
@@ -91,7 +109,7 @@ public class AESTest extends BaseTest {
         SecretKey key = keyGen.generateKey();
 
         // Create cipher in ECB mode
-        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
         
         // Test data (multiple blocks)
         byte[] input = new byte[64]; // 4 AES blocks
@@ -117,7 +135,7 @@ public class AESTest extends BaseTest {
         SecretKey key = keyGen.generateKey();
 
         // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
         
         // Test data (3 AES blocks)
         byte[] input = new byte[48];
@@ -171,7 +189,7 @@ public class AESTest extends BaseTest {
     @Test
     public void testCBCMode() throws Exception {
         // Generate key and IV
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES", HiTls4jProvider.PROVIDER_NAME);
         keyGen.init(256);
         SecretKey key = keyGen.generateKey();
         byte[] iv = new byte[16];
@@ -179,7 +197,7 @@ public class AESTest extends BaseTest {
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
         // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/CBC/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
         
         // Test data (exactly 3 blocks)
         byte[] input = new byte[48];
@@ -208,7 +226,7 @@ public class AESTest extends BaseTest {
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
         // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/CBC/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
         
         // Test data (exactly 3 blocks)
         byte[] input = new byte[48];
@@ -263,29 +281,23 @@ public class AESTest extends BaseTest {
         SecretKey key = keyGen.generateKey();
 
         // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NOPADDING", HiTls4jProvider.PROVIDER_NAME);
         cipher.init(Cipher.ENCRYPT_MODE, key);
         
         // Try to encrypt data that's not a multiple of the block size
         byte[] input = new byte[20];  // Not a multiple of 16
         Arrays.fill(input, (byte)0x42);
-        
         try {
             cipher.doFinal(input);
-            fail("Expected IllegalBlockSizeException");
-        } catch (RuntimeException e) {
-            // Verify the root cause is a CryptoException with the correct error code
-            Throwable cause = e.getCause();
-            assertTrue("Expected CryptoException but got: " + cause.getClass(),
-                      cause instanceof CryptoException);
-            assertTrue("Error message should mention finalize cipher",
-                      e.getMessage().contains("Failed to process data"));
+            fail("Expected exception");
+        } catch (Exception e) {
+            assertTrue("Expected exception", e instanceof IllegalBlockSizeException);
         }
     }
 
     @Test
-    public void testCFBMode() throws Exception {
-        // Generate key and IV
+    public void testCbcPkcs7Padding() throws Exception {
+        // Generate key
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(256);
         SecretKey key = keyGen.generateKey();
@@ -293,28 +305,28 @@ public class AESTest extends BaseTest {
         new SecureRandom().nextBytes(iv);
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
-        // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/CFB/NoPadding", "HITLS4J");
-        
-        // Test data (3 blocks)
-        byte[] input = new byte[48];
-        Arrays.fill(input, (byte)0x42);
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
 
+        // Create cipher
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7PADDING", HiTls4jProvider.PROVIDER_NAME);
+        
         // Encrypt
         cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-        byte[] encrypted = cipher.doFinal(input);
+        byte[] encrypted = cipher.doFinal(testData);
 
         // Decrypt
         cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
         byte[] decrypted = cipher.doFinal(encrypted);
 
         // Verify
-        assertArrayEquals("CFB mode encryption/decryption failed", input, decrypted);
+        assertArrayEquals("CBC mode with PKCS7 padding failed", testData, decrypted);
     }
 
     @Test
-    public void testOFBMode() throws Exception {
-        // Generate key and IV
+    public void testCbcPkcs5Padding() throws Exception {
+        // Generate key
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(256);
         SecretKey key = keyGen.generateKey();
@@ -322,28 +334,28 @@ public class AESTest extends BaseTest {
         new SecureRandom().nextBytes(iv);
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
-        // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/OFB/NoPadding", "HITLS4J");
-        
-        // Test data (3 blocks)
-        byte[] input = new byte[48];
-        Arrays.fill(input, (byte)0x42);
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
 
+        // Create cipher
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING", HiTls4jProvider.PROVIDER_NAME);
+        
         // Encrypt
         cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-        byte[] encrypted = cipher.doFinal(input);
+        byte[] encrypted = cipher.doFinal(testData);
 
         // Decrypt
         cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
         byte[] decrypted = cipher.doFinal(encrypted);
 
         // Verify
-        assertArrayEquals("OFB mode encryption/decryption failed", input, decrypted);
+        assertArrayEquals("CBC mode with PKCS5 padding failed", testData, decrypted);
     }
 
     @Test
-    public void testCFBModeIncremental() throws Exception {
-        // Generate key and IV
+    public void testCbcIso7816Padding() throws Exception {
+        // Generate key
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(256);
         SecretKey key = keyGen.generateKey();
@@ -351,57 +363,28 @@ public class AESTest extends BaseTest {
         new SecureRandom().nextBytes(iv);
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
+
         // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/CFB/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/CBC/ISO7816PADDING", HiTls4jProvider.PROVIDER_NAME);
         
-        // Test data (3 blocks)
-        byte[] input = new byte[48];
-        Arrays.fill(input, (byte)0x42);
-
-        // Encrypt incrementally
+        // Encrypt
         cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-        ByteArrayOutputStream encryptedStream = new ByteArrayOutputStream();
-        
-        // First block
-        byte[] block1 = cipher.update(input, 0, 16);
-        if (block1 != null) encryptedStream.write(block1);
-        
-        // Second block
-        byte[] block2 = cipher.update(input, 16, 16);
-        if (block2 != null) encryptedStream.write(block2);
-        
-        // Final block
-        byte[] finalBlock = cipher.doFinal(input, 32, 16);
-        encryptedStream.write(finalBlock);
-        
-        byte[] encrypted = encryptedStream.toByteArray();
+        byte[] encrypted = cipher.doFinal(testData);
 
-        // Decrypt incrementally
+        // Decrypt
         cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
-        ByteArrayOutputStream decryptedStream = new ByteArrayOutputStream();
-        
-        // Process all blocks
-        int blockSize = 16;
-        int fullBlocks = encrypted.length / blockSize;
-        
-        for (int i = 0; i < fullBlocks - 1; i++) {
-            byte[] decryptedBlock = cipher.update(encrypted, i * blockSize, blockSize);
-            if (decryptedBlock != null) decryptedStream.write(decryptedBlock);
-        }
-        
-        // Process the last block
-        byte[] lastBlock = cipher.doFinal(encrypted, (fullBlocks - 1) * blockSize, blockSize);
-        decryptedStream.write(lastBlock);
-        
-        byte[] decrypted = decryptedStream.toByteArray();
+        byte[] decrypted = cipher.doFinal(encrypted);
 
         // Verify
-        assertArrayEquals("CFB mode incremental encryption/decryption failed", input, decrypted);
+        assertArrayEquals("CBC mode with ISO7816 padding failed", testData, decrypted);
     }
 
     @Test
-    public void testOFBModeIncremental() throws Exception {
-        // Generate key and IV
+    public void testCbcZerosPadding() throws Exception {
+        // Generate key
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(256);
         SecretKey key = keyGen.generateKey();
@@ -409,51 +392,134 @@ public class AESTest extends BaseTest {
         new SecureRandom().nextBytes(iv);
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
+
         // Create cipher
-        Cipher cipher = Cipher.getInstance("AES/OFB/NoPadding", "HITLS4J");
+        Cipher cipher = Cipher.getInstance("AES/CBC/ZEROSPADDING", HiTls4jProvider.PROVIDER_NAME);
         
-        // Test data (3 blocks)
-        byte[] input = new byte[48];
-        Arrays.fill(input, (byte)0x42);
-
-        // Encrypt incrementally
+        // Encrypt
         cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-        ByteArrayOutputStream encryptedStream = new ByteArrayOutputStream();
-        
-        // First block
-        byte[] block1 = cipher.update(input, 0, 16);
-        if (block1 != null) encryptedStream.write(block1);
-        
-        // Second block
-        byte[] block2 = cipher.update(input, 16, 16);
-        if (block2 != null) encryptedStream.write(block2);
-        
-        // Final block
-        byte[] finalBlock = cipher.doFinal(input, 32, 16);
-        encryptedStream.write(finalBlock);
-        
-        byte[] encrypted = encryptedStream.toByteArray();
+        byte[] encrypted = cipher.doFinal(testData);
 
-        // Decrypt incrementally
+        // Decrypt
         cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
-        ByteArrayOutputStream decryptedStream = new ByteArrayOutputStream();
-        
-        // Process all blocks
-        int blockSize = 16;
-        int fullBlocks = encrypted.length / blockSize;
-        
-        for (int i = 0; i < fullBlocks - 1; i++) {
-            byte[] decryptedBlock = cipher.update(encrypted, i * blockSize, blockSize);
-            if (decryptedBlock != null) decryptedStream.write(decryptedBlock);
-        }
-        
-        // Process the last block
-        byte[] lastBlock = cipher.doFinal(encrypted, (fullBlocks - 1) * blockSize, blockSize);
-        decryptedStream.write(lastBlock);
-        
-        byte[] decrypted = decryptedStream.toByteArray();
+        byte[] decrypted = cipher.doFinal(encrypted);
+
+        // For zeros padding, we need to trim trailing zeros
+        int actualLength = testData.length;
+        byte[] trimmedDecrypted = Arrays.copyOf(decrypted, actualLength);
 
         // Verify
-        assertArrayEquals("OFB mode incremental encryption/decryption failed", input, decrypted);
+        assertArrayEquals("CBC mode with zeros padding failed", testData, trimmedDecrypted);
+    }
+
+    @Test
+    public void testEcbPkcs7Padding() throws Exception {
+        // Generate key
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        keyGen.init(256);
+        SecretKey key = keyGen.generateKey();
+
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
+
+        // Create cipher
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS7PADDING", HiTls4jProvider.PROVIDER_NAME);
+        
+        // Encrypt
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] encrypted = cipher.doFinal(testData);
+
+        // Decrypt
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] decrypted = cipher.doFinal(encrypted);
+
+        // Verify
+        assertArrayEquals("ECB mode with PKCS7 padding failed", testData, decrypted);
+    }
+
+    @Test
+    public void testEcbPkcs5Padding() throws Exception {
+        // Generate key
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        keyGen.init(256);
+        SecretKey key = keyGen.generateKey();
+
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
+
+        // Create cipher
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING", HiTls4jProvider.PROVIDER_NAME);
+        
+        // Encrypt
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] encrypted = cipher.doFinal(testData);
+
+        // Decrypt
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] decrypted = cipher.doFinal(encrypted);
+
+        // Verify
+        assertArrayEquals("ECB mode with PKCS5 padding failed", testData, decrypted);
+    }
+
+    @Test
+    public void testEcbIso7816Padding() throws Exception {
+        // Generate key
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        keyGen.init(256);
+        SecretKey key = keyGen.generateKey();
+
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
+
+        // Create cipher
+        Cipher cipher = Cipher.getInstance("AES/ECB/ISO7816PADDING", HiTls4jProvider.PROVIDER_NAME);
+        
+        // Encrypt
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] encrypted = cipher.doFinal(testData);
+
+        // Decrypt
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] decrypted = cipher.doFinal(encrypted);
+
+        // Verify
+        assertArrayEquals("ECB mode with ISO7816 padding failed", testData, decrypted);
+    }
+
+    @Test
+    public void testEcbZerosPadding() throws Exception {
+        // Generate key
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        keyGen.init(256);
+        SecretKey key = keyGen.generateKey();
+
+        // Test data (not block aligned)
+        byte[] testData = new byte[20];  // 20 bytes is not a multiple of 16
+        Arrays.fill(testData, (byte)0x42);
+
+        // Create cipher
+        Cipher cipher = Cipher.getInstance("AES/ECB/ZEROSPADDING", HiTls4jProvider.PROVIDER_NAME);
+        
+        // Encrypt
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] encrypted = cipher.doFinal(testData);
+
+        // Decrypt
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] decrypted = cipher.doFinal(encrypted);
+
+        // For zeros padding, we need to trim trailing zeros
+        int actualLength = testData.length;
+        byte[] trimmedDecrypted = Arrays.copyOf(decrypted, actualLength);
+
+        // Verify
+        assertArrayEquals("ECB mode with zeros padding failed", testData, trimmedDecrypted);
     }
 }

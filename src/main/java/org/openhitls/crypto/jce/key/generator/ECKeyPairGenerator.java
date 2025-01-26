@@ -2,11 +2,11 @@ package org.openhitls.crypto.jce.key.generator;
 
 import java.security.*;
 import java.security.spec.*;
-import org.openhitls.crypto.core.asymmetric.ECDSA;
 import org.openhitls.crypto.jce.key.ECPublicKey;
 import org.openhitls.crypto.jce.key.ECPrivateKey;
 import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 import org.openhitls.crypto.jce.util.ECUtil;
+import org.openhitls.crypto.core.asymmetric.ECDSAImpl;
 
 public class ECKeyPairGenerator extends KeyPairGeneratorSpi {
     private ECParameterSpec params;
@@ -71,9 +71,9 @@ public class ECKeyPairGenerator extends KeyPairGeneratorSpi {
         if (params == null) {
             throw new IllegalStateException("ECParameterSpec not initialized");
         }
-        ECDSA ECDSA = new ECDSA(curveName);
-        byte[] publicKey = ECDSA.getPublicKey();
-        byte[] privateKey = ECDSA.getPrivateKey();
+        ECDSAImpl ecdsaImpl = new ECDSAImpl(curveName);
+        byte[] publicKey = ecdsaImpl.getPublicKey();
+        byte[] privateKey = ecdsaImpl.getPrivateKey();
         
         return new KeyPair(
             new ECPublicKey(publicKey, params),

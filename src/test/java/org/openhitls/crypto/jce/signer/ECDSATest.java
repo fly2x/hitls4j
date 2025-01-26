@@ -1,6 +1,5 @@
 package org.openhitls.crypto.jce.signer;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -10,11 +9,11 @@ import java.security.*;
 import java.security.spec.*;
 import java.nio.charset.StandardCharsets;
 
+import org.openhitls.crypto.BaseTest;
 import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 import org.openhitls.crypto.jce.spec.SM2ParameterSpec;
 
-public class ECDSATest {
-    private static final Provider provider = new HiTls4jProvider();
+public class ECDSATest extends BaseTest {
     private static final String[] SUPPORTED_CURVES = {
             "secp256r1",
             "secp384r1",
@@ -34,36 +33,22 @@ public class ECDSATest {
     private static final String P384_D = "6B9D3DAD2E1B8C1C05B19875B6659F4DE23C3B667BF297BA9AA47740787137D896D5724E4C70A825F872C9EA60D2EDF5";
     private static final String P384_MSG = "sample";
 
-    @Before
-    public void setUp() {
-        Security.addProvider(provider);
-    }
-
     @Test
     public void testKeyGeneration() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", provider.getName());
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         for (String curveName : SUPPORTED_CURVES) {
             ECGenParameterSpec ecSpec = new ECGenParameterSpec(curveName);
             keyGen.initialize(ecSpec);
             KeyPair keyPair = keyGen.generateKeyPair();
             assertNotNull(keyPair.getPrivate());
             assertNotNull(keyPair.getPublic());
-            KeyFactory keyFactory = KeyFactory.getInstance("EC", provider);
+            KeyFactory keyFactory = KeyFactory.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
             ECPublicKeySpec pubSpec = keyFactory.getKeySpec(keyPair.getPublic(), ECPublicKeySpec.class);
             ECPrivateKeySpec privSpec = keyFactory.getKeySpec(keyPair.getPrivate(), ECPrivateKeySpec.class);
             assertNotNull("Public key spec should not be null for " + curveName, pubSpec);
             assertNotNull("Private key spec should not be null for " + curveName, privSpec);
 
         }
-    }
-
-    // Helper method to convert bytes to hex string
-    private static String bytesToHex(byte[] bytes, int offset, int length) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = offset; i < offset + length; i++) {
-            sb.append(String.format("%02X ", bytes[i]));
-        }
-        return sb.toString();
     }
 
     @Test
@@ -81,7 +66,7 @@ public class ECDSATest {
         ECPoint w = new ECPoint(new BigInteger(xHex, 16), new BigInteger(yHex, 16));
 
         // Get parameters
-        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", provider);
+        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         params.init(new ECGenParameterSpec(curveName));
         ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
 
@@ -90,7 +75,7 @@ public class ECDSATest {
         ECPrivateKeySpec privSpec = new ECPrivateKeySpec(new BigInteger(privateHex, 16), ecParameterSpec);
 
         // Generate keys
-        KeyFactory keyFactory = KeyFactory.getInstance("EC", provider);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         PublicKey pubKey = keyFactory.generatePublic(pubSpec);
         PrivateKey privKey = keyFactory.generatePrivate(privSpec);
 
@@ -113,12 +98,12 @@ public class ECDSATest {
     public void testSignatureGeneration() throws Exception {
         for (String curveName : SUPPORTED_CURVES) {
             // Initialize with ECGenParameterSpec
-            AlgorithmParameters params = AlgorithmParameters.getInstance("EC", provider);
+            AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
             params.init(new ECGenParameterSpec(curveName));
             ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
 
             // Generate key pair
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", provider);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
             keyGen.initialize(ecParameterSpec);
             KeyPair keyPair = keyGen.generateKeyPair();
 
@@ -126,13 +111,13 @@ public class ECDSATest {
             byte[] message = "Hello, ECDSA with curve ".concat(curveName).getBytes();
 
             // Sign
-            Signature signer = Signature.getInstance(getSignatureAlgorithm(curveName), provider);
+            Signature signer = Signature.getInstance(getSignatureAlgorithm(curveName), HiTls4jProvider.PROVIDER_NAME);
             signer.initSign(keyPair.getPrivate());
             signer.update(message);
             byte[] signature = signer.sign();
 
             // Verify
-            Signature verifier = Signature.getInstance(getSignatureAlgorithm(curveName), provider);
+            Signature verifier = Signature.getInstance(getSignatureAlgorithm(curveName), HiTls4jProvider.PROVIDER_NAME);
             verifier.initVerify(keyPair.getPublic());
             verifier.update(message);
             assertTrue("Signature verification should succeed for " + curveName,
@@ -148,7 +133,7 @@ public class ECDSATest {
 
     @Test
     public void testP256KeyGeneration() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", provider);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
         keyGen.initialize(ecSpec);
         KeyPair keyPair = keyGen.generateKeyPair();
@@ -164,19 +149,19 @@ public class ECDSATest {
     public void testP256WithTestVectors() throws Exception {
         // Create key specs
         ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
-        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", provider);
+        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         params.init(ecSpec);
         ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
 
         // Create public key
         ECPoint w = new ECPoint(new BigInteger(P256_Qx, 16), new BigInteger(P256_Qy, 16));
         ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(w, ecParameterSpec);
-        KeyFactory keyFactory = KeyFactory.getInstance("EC", provider);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         PublicKey pubKey = keyFactory.generatePublic(pubKeySpec);
 
         // Verify only
         byte[] message = P256_MSG.getBytes(StandardCharsets.UTF_8);
-        Signature signer = Signature.getInstance("SHA256withECDSA", provider);
+        Signature signer = Signature.getInstance("SHA256withECDSA", HiTls4jProvider.PROVIDER_NAME);
         signer.initVerify(pubKey);
         signer.update(message);
         assertNotNull("Public key should be created successfully", pubKey);
@@ -186,19 +171,19 @@ public class ECDSATest {
     public void testP384WithTestVectors() throws Exception {
         // Create key specs
         ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp384r1");
-        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", provider);
+        AlgorithmParameters params = AlgorithmParameters.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         params.init(ecSpec);
         ECParameterSpec ecParameterSpec = params.getParameterSpec(ECParameterSpec.class);
 
         // Create public key
         ECPoint w = new ECPoint(new BigInteger(P384_Qx, 16), new BigInteger(P384_Qy, 16));
         ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(w, ecParameterSpec);
-        KeyFactory keyFactory = KeyFactory.getInstance("EC", provider);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         PublicKey pubKey = keyFactory.generatePublic(pubKeySpec);
 
         // Verify only
         byte[] message = P384_MSG.getBytes(StandardCharsets.UTF_8);
-        Signature signer = Signature.getInstance("SHA384withECDSA", provider);
+        Signature signer = Signature.getInstance("SHA384withECDSA", HiTls4jProvider.PROVIDER_NAME);
         signer.initVerify(pubKey);
         signer.update(message);
         assertNotNull("Public key should be created successfully", pubKey);
@@ -214,12 +199,12 @@ public class ECDSATest {
         };
 
         for (String curve : SUPPORTED_CURVES) {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", provider);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
             keyGen.initialize(new ECGenParameterSpec(curve));
             KeyPair keyPair = keyGen.generateKeyPair();
 
             String sigAlg = getSignatureAlgorithm(curve);
-            Signature signer = Signature.getInstance(sigAlg, provider);
+            Signature signer = Signature.getInstance(sigAlg, HiTls4jProvider.PROVIDER_NAME);
 
             for (String message : messages) {
                 byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
@@ -264,7 +249,7 @@ public class ECDSATest {
         ECPrivateKeySpec privSpec = new ECPrivateKeySpec(new BigInteger(privateHex, 16), ecParameterSpec);
 
         // Generate keys
-        KeyFactory keyFactory = KeyFactory.getInstance("EC", provider);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", HiTls4jProvider.PROVIDER_NAME);
         PublicKey pubKey = keyFactory.generatePublic(pubSpec);
         PrivateKey privKey = keyFactory.generatePrivate(privSpec);
 
@@ -295,14 +280,14 @@ public class ECDSATest {
         SM2ParameterSpec sm2Spec = new SM2ParameterSpec(userId);
 
         // Sign with custom userId
-        Signature signer = Signature.getInstance("SM3withSM2", provider);
+        Signature signer = Signature.getInstance("SM3withSM2", HiTls4jProvider.PROVIDER_NAME);
         signer.setParameter(sm2Spec);
         signer.initSign(keyPair.getPrivate());
         signer.update(message);
         byte[] signature = signer.sign();
 
         // Verify with same userId
-        Signature verifier = Signature.getInstance("SM3withSM2", provider);
+        Signature verifier = Signature.getInstance("SM3withSM2", HiTls4jProvider.PROVIDER_NAME);
         verifier.setParameter(sm2Spec);
         verifier.initVerify(keyPair.getPublic());
         verifier.update(message);
@@ -312,7 +297,7 @@ public class ECDSATest {
         byte[] differentUserId = "DifferentUserId@example.com".getBytes();
         SM2ParameterSpec differentSpec = new SM2ParameterSpec(differentUserId);
 
-        verifier = Signature.getInstance("SM3withSM2", provider);
+        verifier = Signature.getInstance("SM3withSM2", HiTls4jProvider.PROVIDER_NAME);
         verifier.setParameter(differentSpec);
         verifier.initVerify(keyPair.getPublic());
         verifier.update(message);

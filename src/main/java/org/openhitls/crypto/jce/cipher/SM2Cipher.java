@@ -8,13 +8,13 @@ import javax.crypto.Cipher;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
-import org.openhitls.crypto.core.asymmetric.ECDSA;
+import org.openhitls.crypto.core.asymmetric.ECDSAImpl;
 import org.openhitls.crypto.jce.key.ECPublicKey;
 import org.openhitls.crypto.jce.key.ECPrivateKey;
 import org.openhitls.crypto.jce.spec.ECNamedCurveSpec;
 
 public class SM2Cipher extends CipherSpi {
-    private ECDSA ECDSA;
+    private ECDSAImpl ecdsaImpl;
     private int opmode;
 
     @Override
@@ -64,7 +64,7 @@ public class SM2Cipher extends CipherSpi {
                     throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
                 }
                 String curveName = ((ECNamedCurveSpec)params).getName();
-                ECDSA = new ECDSA(curveName, ((ECPublicKey)key).getEncoded(), null);
+                ecdsaImpl = new ECDSAImpl(curveName, ((ECPublicKey)key).getEncoded(), null);
             } else if (opmode == Cipher.DECRYPT_MODE) {
                 if (!(key instanceof ECPrivateKey)) {
                     throw new InvalidKeyException("Private key required for decryption");
@@ -74,7 +74,7 @@ public class SM2Cipher extends CipherSpi {
                     throw new InvalidKeyException("Key parameters must be an instance of ECNamedCurveSpec");
                 }
                 String curveName = ((ECNamedCurveSpec)params).getName();
-                ECDSA = new ECDSA(curveName, null, ((ECPrivateKey)key).getEncoded());
+                ecdsaImpl = new ECDSAImpl(curveName, null, ((ECPrivateKey)key).getEncoded());
             } else {
                 throw new InvalidKeyException("Unsupported operation mode");
             }
@@ -114,9 +114,9 @@ public class SM2Cipher extends CipherSpi {
 
         try {
             if (opmode == Cipher.ENCRYPT_MODE) {
-                return ECDSA.encryptData(data);
+                return ecdsaImpl.encryptData(data);
             } else {
-                return ECDSA.decryptData(data);
+                return ecdsaImpl.decryptData(data);
             }
         } catch (Exception e) {
             throw new BadPaddingException("Operation failed: " + e.getMessage());

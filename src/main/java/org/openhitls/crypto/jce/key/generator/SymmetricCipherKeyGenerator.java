@@ -7,11 +7,11 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
-public class SM4KeyGenerator extends KeyGeneratorSpi {
+public class SymmetricCipherKeyGenerator extends KeyGeneratorSpi {
     private SecureRandom random;
-    private int keySize = 128; // SM4 uses 128-bit keys
+    private int keySize;
 
-    public SM4KeyGenerator() {
+    public SymmetricCipherKeyGenerator() {
         super();
     }
 
@@ -28,8 +28,8 @@ public class SM4KeyGenerator extends KeyGeneratorSpi {
 
     @Override
     protected void engineInit(int keysize, SecureRandom random) {
-        if (keysize != 128) {
-            throw new IllegalArgumentException("SM4 only supports 128-bit keys");
+        if (keysize != 128 && keysize != 192 && keysize != 256) {
+            throw new IllegalArgumentException("Invalid key size: " + keysize);
         }
         this.keySize = keysize;
         this.random = random;
@@ -43,6 +43,6 @@ public class SM4KeyGenerator extends KeyGeneratorSpi {
 
         byte[] keyBytes = new byte[keySize / 8];
         random.nextBytes(keyBytes);
-        return new SecretKeySpec(keyBytes, "SM4");
+        return new SecretKeySpec(keyBytes, "AES");
     }
 }

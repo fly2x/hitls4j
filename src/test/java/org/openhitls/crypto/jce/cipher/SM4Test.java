@@ -12,9 +12,11 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.Security;
+
+import org.openhitls.crypto.BaseTest;
 import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 
-public class SM4Test extends org.openhitls.crypto.BaseTest {
+public class SM4Test extends BaseTest {
     private static final byte[] TEST_KEY = new byte[] {
         (byte)0x01, (byte)0x02, (byte)0x03, (byte)0x04, (byte)0x05, (byte)0x06, (byte)0x07, (byte)0x08,
         (byte)0x09, (byte)0x0a, (byte)0x0b, (byte)0x0c, (byte)0x0d, (byte)0x0e, (byte)0x0f, (byte)0x10
@@ -54,7 +56,7 @@ public class SM4Test extends org.openhitls.crypto.BaseTest {
         if (Security.getProvider(HiTls4jProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new HiTls4jProvider());
         }
-        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", HiTls4jProvider.PROVIDER_NAME);
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES", HiTls4jProvider.PROVIDER_NAME);
         keyGen.init(128);
         byte[] key = keyGen.generateKey().getEncoded();
         assertEquals(128 / 8, key.length);

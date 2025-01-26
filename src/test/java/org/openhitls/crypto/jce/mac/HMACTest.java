@@ -40,7 +40,7 @@ public class HMACTest extends BaseTest {
 
             byte[] key = ("TestKey123" + algorithm).getBytes(StandardCharsets.UTF_8);
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm);
-            Mac mac = Mac.getInstance(algorithm, "HITLS4J");
+            Mac mac = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             mac.init(keySpec);
 
             String message = "Hello, " + algorithm + "!";
@@ -59,13 +59,13 @@ public class HMACTest extends BaseTest {
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm);
             
             // Single-shot MAC
-            Mac mac1 = Mac.getInstance(algorithm, "HITLS4J");
+            Mac mac1 = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             mac1.init(keySpec);
             String message = "Hello, " + algorithm + "!";
             byte[] expectedMac = mac1.doFinal(message.getBytes(StandardCharsets.UTF_8));
 
             // Incremental MAC
-            Mac mac2 = Mac.getInstance(algorithm, "HITLS4J");
+            Mac mac2 = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             mac2.init(keySpec);
             byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
             for (int i = 0; i < messageBytes.length; i++) {
@@ -84,7 +84,7 @@ public class HMACTest extends BaseTest {
         for (String algorithm : HMAC_ALGORITHMS) {
             byte[] key = ("TestKey123" + algorithm).getBytes(StandardCharsets.UTF_8);
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm);
-            Mac mac = Mac.getInstance(algorithm, "HITLS4J");
+            Mac mac = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             mac.init(keySpec);
 
             byte[] emptyMac = mac.doFinal(new byte[0]);
@@ -99,7 +99,7 @@ public class HMACTest extends BaseTest {
         for (String algorithm : HMAC_ALGORITHMS) {
             byte[] key = ("TestKey123" + algorithm).getBytes(StandardCharsets.UTF_8);
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm);
-            Mac mac = Mac.getInstance(algorithm, "HITLS4J");
+            Mac mac = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             mac.init(keySpec);
 
             String message = "Test message for " + algorithm;
@@ -134,7 +134,7 @@ public class HMACTest extends BaseTest {
             final SecretKeySpec keySpec = new SecretKeySpec(key, algorithm);
 
             // Get expected MAC
-            Mac mac = Mac.getInstance(algorithm, "HITLS4J");
+            Mac mac = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             mac.init(keySpec);
             final byte[] expectedMac = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
 
@@ -144,7 +144,7 @@ public class HMACTest extends BaseTest {
                     try {
                         for (int j = 0; j < iterationsPerThread; j++) {
                             // Test single-shot MAC
-                            Mac threadMac = Mac.getInstance(algorithm, "HITLS4J");
+                            Mac threadMac = Mac.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
                             threadMac.init(keySpec);
                             byte[] threadMacResult = threadMac.doFinal(message.getBytes(StandardCharsets.UTF_8));
                             assertArrayEquals("MAC mismatch in thread " + threadIndex + ", iteration " + j,

@@ -37,7 +37,7 @@ public class MessageDigestTest extends BaseTest {
             String algorithm = DIGEST_ALGORITHMS[i];
             int expectedLength = DIGEST_LENGTHS[i];
 
-            MessageDigest md = MessageDigest.getInstance(algorithm, "HITLS4J");
+            MessageDigest md = MessageDigest.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             String message = "Hello, " + algorithm + "!";
             byte[] hash = md.digest(message.getBytes(StandardCharsets.UTF_8));
 
@@ -50,7 +50,7 @@ public class MessageDigestTest extends BaseTest {
     @Test
     public void testDigestIncremental() throws Exception {
         for (String algorithm : DIGEST_ALGORITHMS) {
-            MessageDigest md = MessageDigest.getInstance(algorithm, "HITLS4J");
+            MessageDigest md = MessageDigest.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             String part1 = "Hello, ";
             String part2 = algorithm + "!";
 
@@ -71,7 +71,7 @@ public class MessageDigestTest extends BaseTest {
     @Test
     public void testEmptyMessage() throws Exception {
         for (String algorithm : DIGEST_ALGORITHMS) {
-            MessageDigest md = MessageDigest.getInstance(algorithm, "HITLS4J");
+            MessageDigest md = MessageDigest.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             byte[] hash = md.digest(new byte[0]);
             assertEquals("Hash length should match algorithm spec for " + algorithm,
                     md.getDigestLength(), hash.length);
@@ -81,7 +81,7 @@ public class MessageDigestTest extends BaseTest {
     @Test
     public void testReset() throws Exception {
         for (String algorithm : DIGEST_ALGORITHMS) {
-            MessageDigest md = MessageDigest.getInstance(algorithm, "HITLS4J");
+            MessageDigest md = MessageDigest.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             String message = "Test message for " + algorithm;
             byte[] hash1 = md.digest(message.getBytes(StandardCharsets.UTF_8));
 
@@ -106,7 +106,7 @@ public class MessageDigestTest extends BaseTest {
             final String message = "Test message for multi-threaded " + algorithm;
             
             // Get expected hash
-            MessageDigest md = MessageDigest.getInstance(algorithm, "HITLS4J");
+            MessageDigest md = MessageDigest.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
             final byte[] expectedHash = md.digest(message.getBytes(StandardCharsets.UTF_8));
 
             for (int i = 0; i < threadCount; i++) {
@@ -115,7 +115,7 @@ public class MessageDigestTest extends BaseTest {
                     try {
                         for (int j = 0; j < iterationsPerThread; j++) {
                             // Test single-shot hash
-                            MessageDigest threadMd = MessageDigest.getInstance(algorithm, "HITLS4J");
+                            MessageDigest threadMd = MessageDigest.getInstance(algorithm, HiTls4jProvider.PROVIDER_NAME);
                             byte[] hash = threadMd.digest(message.getBytes(StandardCharsets.UTF_8));
                             assertArrayEquals("Hash mismatch in thread " + threadIndex + ", iteration " + j,
                                     expectedHash, hash);

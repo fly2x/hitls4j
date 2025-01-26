@@ -2,16 +2,14 @@ package org.openhitls.crypto;
 
 import org.junit.BeforeClass;
 import java.io.File;
+import java.security.Security;
+import org.openhitls.crypto.jce.provider.HiTls4jProvider;
 
 public class BaseTest {
     @BeforeClass
     public static void loadNativeLibraries() {
         String libraryPath = new File(System.getProperty("user.dir") + "/target/native/libhitls_crypto_jni.so").getAbsolutePath();
-        try {
-            System.load(libraryPath);
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("Failed to load native library: " + e.getMessage());
-            throw e;
-        }
+        System.load(libraryPath);
+        Security.addProvider(new HiTls4jProvider());
     }
 }
