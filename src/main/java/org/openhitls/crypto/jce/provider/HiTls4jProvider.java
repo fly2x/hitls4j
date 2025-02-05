@@ -38,6 +38,15 @@ public final class HiTls4jProvider extends Provider {
         put("Cipher.AES SupportedModes", "ECB|CBC|CTR|GCM");
         put("Cipher.AES SupportedPaddings", "NOPADDING|PKCS5PADDING|PKCS7PADDING|ZEROSPADDING|ISO7816PADDING|X923PADDING");
 
+        // DSA functionality
+        put("KeyPairGenerator.DSA", "org.openhitls.crypto.jce.key.generator.DSAKeyPairGenerator");
+        put("Signature.DSA", "org.openhitls.crypto.jce.signer.DSASigner");
+        put("Signature.SHA1withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
+        put("Signature.SHA224withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
+        put("Signature.SHA256withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
+        put("Signature.SHA384withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
+        put("Signature.SHA512withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
+        put("AlgorithmParameters.DSA", "org.openhitls.crypto.jce.param.DSAParameters");
 
         put("Cipher.SM2", SM2Cipher.class.getName());
         put("KeyPairGenerator.EC", ECKeyPairGenerator.class.getName());

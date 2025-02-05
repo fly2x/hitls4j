@@ -176,6 +176,48 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_symmetr
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_symmetricCipherFree
   (JNIEnv *, jclass, jlong);
 
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaCreateContext
+ */
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaCreateContext
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaFreeContext
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaFreeContext
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaSetParameters
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParameters
+  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jbyteArray);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaGenerateKeyPair
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaSign
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSign
+  (JNIEnv *, jclass, jlong, jbyteArray, jint);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaVerify
+ */
+JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaVerify
+  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jint);
+
 #ifdef __cplusplus
 }
 #endif
