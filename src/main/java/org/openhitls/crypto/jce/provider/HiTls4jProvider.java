@@ -2,6 +2,7 @@ package org.openhitls.crypto.jce.provider;
 
 import org.openhitls.crypto.jce.cipher.SM4Cipher;
 import org.openhitls.crypto.jce.cipher.AESCipher;
+import org.openhitls.crypto.jce.cipher.RSACipher;
 import java.security.Provider;
 import org.openhitls.crypto.jce.key.generator.ECKeyPairGenerator;
 import org.openhitls.crypto.jce.key.factory.ECKeyFactory;
@@ -27,6 +28,12 @@ public final class HiTls4jProvider extends Provider {
         }
     }
 
+    public static class RSACipherImpl extends RSACipher {
+        public RSACipherImpl() {
+            super();
+        }
+    }
+
     public HiTls4jProvider() {
         super(PROVIDER_NAME, VERSION, INFO);
         
@@ -38,6 +45,15 @@ public final class HiTls4jProvider extends Provider {
         put("Cipher.AES SupportedModes", "ECB|CBC|CTR|GCM");
         put("Cipher.AES SupportedPaddings", "NOPADDING|PKCS5PADDING|PKCS7PADDING|ZEROSPADDING|ISO7816PADDING|X923PADDING");
 
+        // Register RSA cipher
+        put("Cipher.RSA", RSACipherImpl.class.getName());
+        put("Cipher.RSA SupportedModes", "ECB");
+        put("Cipher.RSA SupportedPaddings", "PKCS1PADDING|NOPADDING");
+
+        // Register RSA cipher transformations
+        put("Cipher.RSA/ECB/PKCS1PADDING", RSACipherImpl.class.getName());
+        put("Cipher.RSA/ECB/NOPADDING", RSACipherImpl.class.getName());
+
         // DSA functionality
         put("KeyPairGenerator.DSA", "org.openhitls.crypto.jce.key.generator.DSAKeyPairGenerator");
         put("Signature.DSA", "org.openhitls.crypto.jce.signer.DSASigner");
@@ -47,6 +63,23 @@ public final class HiTls4jProvider extends Provider {
         put("Signature.SHA384withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
         put("Signature.SHA512withDSA", "org.openhitls.crypto.jce.signer.DSASigner");
         put("AlgorithmParameters.DSA", "org.openhitls.crypto.jce.param.DSAParameters");
+
+        // RSA functionality
+        put("KeyPairGenerator.RSA", "org.openhitls.crypto.jce.key.generator.RSAKeyPairGenerator");
+        put("Signature.SHA224withRSA", "org.openhitls.crypto.jce.signer.RSASigner$SHA224withRSA");
+        put("Signature.SHA256withRSA", "org.openhitls.crypto.jce.signer.RSASigner$SHA256withRSA");
+        put("Signature.SHA384withRSA", "org.openhitls.crypto.jce.signer.RSASigner$SHA384withRSA");
+        put("Signature.SHA512withRSA", "org.openhitls.crypto.jce.signer.RSASigner$SHA512withRSA");
+        put("Signature.SM3withRSA", "org.openhitls.crypto.jce.signer.RSASigner$SM3withRSA");
+
+        // RSA PSS Signatures
+        put("Signature.SHA224withRSA/PSS", "org.openhitls.crypto.jce.signer.RSASigner$SHA224withRSAPSS");
+        put("Signature.SHA256withRSA/PSS", "org.openhitls.crypto.jce.signer.RSASigner$SHA256withRSAPSS");
+        put("Signature.SHA384withRSA/PSS", "org.openhitls.crypto.jce.signer.RSASigner$SHA384withRSAPSS");
+        put("Signature.SHA512withRSA/PSS", "org.openhitls.crypto.jce.signer.RSASigner$SHA512withRSAPSS");
+        put("Signature.SM3withRSA/PSS", "org.openhitls.crypto.jce.signer.RSASigner$SM3withRSAPSS");
+
+        put("AlgorithmParameters.RSA", "org.openhitls.crypto.jce.param.RSAParameters");
 
         put("Cipher.SM2", SM2Cipher.class.getName());
         put("KeyPairGenerator.EC", ECKeyPairGenerator.class.getName());

@@ -218,6 +218,69 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSign
 JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaVerify
   (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jint);
 
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaCreateContext
+ */
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaCreateContext
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaFreeContext
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaFreeContext
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaSetParameters
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaSetParameters
+  (JNIEnv *, jclass, jlong, jbyteArray, jint);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaSetKeys
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaSetKeys
+  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaGenerateKeyPair
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaGenerateKeyPair
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaSign
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaSign
+  (JNIEnv *, jclass, jlong, jbyteArray, jstring);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaVerify
+ */
+JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaVerify
+  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jstring);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaEncrypt
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaEncrypt
+  (JNIEnv *, jclass, jlong, jbyteArray);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    rsaDecrypt
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_rsaDecrypt
+  (JNIEnv *, jclass, jlong, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif

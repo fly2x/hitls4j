@@ -67,9 +67,9 @@
                                     <arg value="-I${env.JAVA_HOME}/include"/>
                                     <arg value="-I${env.JAVA_HOME}/include/linux"/>
                                     <arg value="-I${basedir}/src/main/native"/>
-                                    <arg value="-I${basedir}/src/main/native/include"/>
                                     <arg value="-I${openhitls.root}/include"/>
-                                    <arg value="-I${openhitls.root}/crypto/include"/>
+                                    <arg value="-I${openhitls.root}/include/bsl"/>
+                                    <arg value="-I${openhitls.root}/include/crypto"/>
                                     <arg value="-I${openhitls.root}/build/include"/>
                                     <arg value="${basedir}/src/main/native/crypto_native_jni.c"/>
                                     <arg value="-o"/>
