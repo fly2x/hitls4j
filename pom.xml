@@ -26,7 +26,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <openhitls.root>/root/openhitls</openhitls.root>
+        <openhitls.root>./libs</openhitls.root>
     </properties>
 
     <build>
